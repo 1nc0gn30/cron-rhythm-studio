@@ -1,6 +1,6 @@
 # Cron Rhythm Studio ⏰✨
 
-> **Multi-OS Model Context Protocol (MCP) Server, CLI & Google Material 3 Studio for Cron AST Parsing, 24×7 Rhythm Heatmaps, Humanization, and Multi-Dialect Transpilation.**
+> **Multi-OS Model Context Protocol (MCP) Server, CLI & Interactive Studio (design influenced by Material 3 tokens) for Cron AST Parsing, 24×7 Rhythm Heatmaps, Humanization, and Multi-Dialect Transpilation.**
 > **Zero External Dependencies** — 100% Python Standard Library (3.9–3.13).
 
 [![CI](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml)
@@ -35,7 +35,7 @@
   - 40+ curated presets for database backups, SSL renewal, log rotation, cache warming, and telemetry probes.
 - **FastMCP Protocol 2.0 Server**:
   - First-class stdio JSON-RPC server enabling AI coding assistants (Claude Desktop, Cursor, Cline, Windsurf) to analyze and generate schedules.
-- **Google Material 3 Studio Web App**:
+- **Cron Rhythm Studio Web App** (Design influenced by Material 3 tokens):
   - Interactive web interface with live cron builder wheels, human translation pill, 24×7 rhythm heatmap, upcoming run timeline, and dark/light themes.
 
 ---
@@ -79,7 +79,7 @@ cron-rhythm rhythm "*/30 * * * *"
 # 6. Browse built-in production schedule templates
 cron-rhythm presets --search backup
 
-# 7. Launch the Google Material 3 Studio Web App
+# 7. Launch the Cron Rhythm Studio Web App (Material 3 influenced)
 cron-rhythm serve --port 8080
 ```
 

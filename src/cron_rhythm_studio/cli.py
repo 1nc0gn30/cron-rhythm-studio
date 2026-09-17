@@ -2,7 +2,7 @@
 
 Provides subcommands for parsing, next-run calculation, natural English translation,
 multi-dialect transpilation, 24x7 rhythm heatmap analysis, preset querying, MCP server,
-system diagnostics doctor, self-verification testing, and Google Material 3 Web UI.
+system diagnostics doctor, self-verification testing, and Material 3-influenced Web UI.
 """
 
 from __future__ import annotations
@@ -554,7 +554,7 @@ def cmd_test(args: argparse.Namespace) -> int:
 
 
 # ============================================================================
-# Google Material 3 Web UI & REST API Server
+# Material 3 Influenced Web UI & REST API Server
 # ============================================================================
 
 MATERIAL_WEB_HTML = """<!DOCTYPE html>
@@ -1281,7 +1281,7 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
-    """Launch the Google Material 3 Cron Studio Web UI & REST Server."""
+    """Launch the Cron Rhythm Studio Web UI & REST Server (design influenced by Material 3 tokens)."""
     host = args.host or "127.0.0.1"
     port = args.port or 8080
 
