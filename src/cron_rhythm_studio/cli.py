@@ -11,6 +11,7 @@ import argparse
 import http.server
 import json
 import os
+import pathlib
 import platform
 import re
 import socketserver
@@ -1162,7 +1163,11 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(MATERIAL_WEB_HTML.encode("utf-8"))
+            disk_index = pathlib.Path(__file__).resolve().parent.parent.parent / "public" / "index.html"
+            if disk_index.is_file():
+                self.wfile.write(disk_index.read_bytes())
+            else:
+                self.wfile.write(MATERIAL_WEB_HTML.encode("utf-8"))
             return
 
         # 2. REST API: /api/parse
