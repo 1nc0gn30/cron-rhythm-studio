@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cron-rhythm-studio"
+version = "1.0.0"
+description = "Universal Cron Rhythm & Schedule Studio - Visual 24x7 Matrix, Transpiler, Natural Language Humanizer & MCP Server"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Cron Rhythm Studio Authors", email = "dev@cronrhythm.local"}
+]
+keywords = [
+    "cron",
+    "crontab",
+    "scheduler",
+    "quartz",
+    "systemd",
+    "eventbridge",
+    "kubernetes",
+    "mcp",
+    "transpiler",
+    "rhythm-matrix"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+cron-rhythm-studio = "cron_rhythm_studio.cli:main"
+cron-rhythm = "cron_rhythm_studio.cli:main"
+cronrhythm = "cron_rhythm_studio.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cron_rhythm_studio = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --strict-markers"
+markers = [
+    "unit: Pure unit tests",
+    "integration: Integration and end-to-end tests",
+    "cli: Command line interface tests",
+    "mcp: Model Context Protocol tests",
+    "ui: UI HTTP server tests",
+]
