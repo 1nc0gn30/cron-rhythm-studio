@@ -379,6 +379,82 @@ def cmd_rhythm(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fleet(args: argparse.Namespace) -> int:
+    """Handler for `fleet` subcommand: multi-job concurrency optimizer."""
+    from .fleet_optimizer import audit_cron_fleet
+
+    jobs: Dict[str, str] = {}
+    if getattr(args, "demo", False):
+        jobs = {
+            "db-backup": "0 2 * * *",
+            "log-rotate": "0 2 * * *",
+            "elastic-sync": "0 2 * * *",
+            "metrics-push": "0 * * * *",
+            "cert-renewal": "0 0 1 * *",
+        }
+    elif getattr(args, "file", None):
+        from .compat import read_json_safe
+        data = read_json_safe(args.file)
+        if isinstance(data, dict):
+            jobs = {k: str(v) for k, v in data.items()}
+    elif getattr(args, "jobs", None):
+        try:
+            parsed = json.loads(args.jobs)
+            if isinstance(parsed, dict):
+                jobs = {k: str(v) for k, v in parsed.items()}
+        except Exception:
+            for pair in args.jobs.split(","):
+                if "=" in pair:
+                    k, v = pair.split("=", 1)
+                    jobs[k.strip()] = v.strip()
+
+    if not jobs:
+        jobs = {
+            "db-backup": "0 2 * * *",
+            "log-rotate": "0 2 * * *",
+            "metrics-push": "0 * * * *",
+        }
+
+    horizon = max(1, min(getattr(args, "horizon", 24) or 24, 168))
+    report = audit_cron_fleet(jobs, horizon_hours=horizon, auto_rebalance=True)
+
+    if getattr(args, "json", False):
+        print(json.dumps(report.to_dict(), indent=2))
+        return 0
+
+    if getattr(args, "crontab", False):
+        print(report.optimized_crontab)
+        return 0
+
+    if getattr(args, "k8s", False):
+        print(report.kubernetes_manifests)
+        return 0
+
+    if getattr(args, "svg", None):
+        from .compat import atomic_write_text
+        atomic_write_text(args.svg, report.svg_concurrency_chart)
+        print(f"Saved SVG concurrency chart to: {args.svg}")
+        return 0
+
+    print(styler.bold(styler.cyan(f"\n=== Cron Fleet Concurrency Optimizer (Thundering Herd Defense) ===")))
+    print(f"  {styler.bold('Total Fleet Jobs:')}       {report.total_jobs}")
+    print(f"  {styler.bold('Analysis Horizon:')}       {report.horizon_hours} hours")
+    print(f"  {styler.bold('Peak Concurrency Before:')} {styler.red(str(report.max_concurrency_before))} simultaneous jobs")
+    print(f"  {styler.bold('Peak Concurrency After:')}  {styler.green(str(report.max_concurrency_after))} simultaneous jobs")
+    print(f"  {styler.bold('Risk Score Before:')}      {report.thundering_herd_score_before:.1f}%")
+    print(f"  {styler.bold('Risk Score After:')}       {report.thundering_herd_score_after:.1f}%\n")
+
+    if report.rebalance_suggestions:
+        print(styler.bold("  Staggering Rebalance Suggestions:"))
+        for s in report.rebalance_suggestions:
+            print(f"    • {styler.bold(s.job_name)}: {styler.dim(s.original_expression)} → {styler.green(s.optimized_expression)} (+{s.shift_minutes}m)")
+        print()
+
+    print(report.ascii_concurrency_profile)
+    print()
+    return 0
+
+
 def cmd_presets(args: argparse.Namespace) -> int:
     """Handler for `presets` subcommand."""
     cat = args.category
@@ -1250,6 +1326,30 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
             })
             return
 
+        # 7b. REST API: /api/fleet
+        if path == "/api/fleet":
+            from .fleet_optimizer import audit_cron_fleet
+            jobs_param = query.get("jobs", [None])[0]
+            horizon = int(query.get("horizon", ["24"])[0])
+            jobs: Dict[str, str] = {}
+            if jobs_param:
+                try:
+                    parsed = json.loads(jobs_param)
+                    if isinstance(parsed, dict):
+                        jobs = {str(k): str(v) for k, v in parsed.items()}
+                except Exception:
+                    pass
+            if not jobs:
+                jobs = {
+                    "db_backup": "0 0 * * *",
+                    "nightly_analytics": "0 0 * * *",
+                    "billing_reconciliation": "0 0 * * *",
+                    "cache_eviction": "0 0 * * *",
+                }
+            report = audit_cron_fleet(jobs, horizon_hours=horizon, auto_rebalance=True)
+            self._send_json(report.to_dict())
+            return
+
         # 8. REST API: /api/health or /api/diagnostics
         if path in ("/api/health", "/api/diagnostics"):
             plat_info = get_platform_info()
@@ -1262,6 +1362,42 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
             return
 
         # 404 Not Found
+        self.send_response(404)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"error": "Endpoint not found"}')
+
+    def do_POST(self) -> None:
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        if path == "/api/fleet":
+            from .fleet_optimizer import audit_cron_fleet
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            try:
+                data = json.loads(body.decode("utf-8"))
+            except Exception:
+                data = {}
+            jobs = data.get("jobs", {})
+            horizon = int(data.get("horizon_hours", 24))
+            auto_rebal = bool(data.get("auto_rebalance", True))
+            max_shift = int(data.get("max_shift_minutes", 25))
+            if not jobs or not isinstance(jobs, dict):
+                jobs = {
+                    "db_backup": "0 0 * * *",
+                    "nightly_analytics": "0 0 * * *",
+                    "billing_reconciliation": "0 0 * * *",
+                }
+            report = audit_cron_fleet(
+                jobs,
+                horizon_hours=horizon,
+                auto_rebalance=auto_rebal,
+                max_shift_minutes=max_shift,
+            )
+            self._send_json(report.to_dict())
+            return
+
         self.send_response(404)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
@@ -1361,6 +1497,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_rhy.add_argument("--granularity", type=str, default="hourly", help="Granularity ('hourly' or 'slot')")
     p_rhy.add_argument("--json", action="store_true", help="Output JSON matrix report")
     p_rhy.set_defaults(func=cmd_rhythm)
+
+    # 5b. fleet
+    p_fleet = subparsers.add_parser("fleet", parents=[parent_parser], help="Audit multi-job fleet concurrency and desynchronize thundering herd")
+    p_fleet.add_argument("--jobs", type=str, default=None, help="JSON string or name=expr pairs of fleet jobs")
+    p_fleet.add_argument("-f", "--file", type=str, default=None, help="Path to JSON file with fleet jobs mapping")
+    p_fleet.add_argument("--demo", action="store_true", help="Use built-in microservice fleet sample")
+    p_fleet.add_argument("-H", "--horizon", type=int, default=24, help="Analysis horizon in hours (default: 24)")
+    p_fleet.add_argument("--crontab", action="store_true", help="Print optimized desynchronized Unix crontab")
+    p_fleet.add_argument("--k8s", action="store_true", help="Print Kubernetes CronJob YAML manifests")
+    p_fleet.add_argument("--svg", type=str, default=None, help="Save SVG concurrency chart to file")
+    p_fleet.add_argument("--json", action="store_true", help="Output JSON audit report")
+    p_fleet.set_defaults(func=cmd_fleet)
 
     # 6. presets
     p_pre = subparsers.add_parser("presets", parents=[parent_parser], help="List curated production cron templates")

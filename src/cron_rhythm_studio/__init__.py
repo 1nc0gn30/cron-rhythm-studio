@@ -22,12 +22,16 @@ from .models import (
     CronPreset,
     CronScheduleAST,
     CronTargetFormat,
+    FleetAuditReport,
+    FleetConcurrencyPeak,
+    FleetRebalanceSuggestion,
     NextRunItem,
     NextRunWithJitter,
     RhythmCell,
     RhythmMatrixReport,
     TranspileResult,
 )
+from .fleet_optimizer import audit_cron_fleet
 from .parser import parse_cron, tokenize_cron, validate_cron
 from .rhythm_matrix import generate_rhythm_matrix, render_ascii_rhythm_matrix
 from .timeline_engine import (
@@ -50,10 +54,14 @@ __all__ = [
     "NextRunItem",
     "NextRunWithJitter",
     "CronDiffReport",
+    "FleetConcurrencyPeak",
+    "FleetRebalanceSuggestion",
+    "FleetAuditReport",
     "TranspileResult",
     "RhythmCell",
     "RhythmMatrixReport",
     "CronPreset",
+    "audit_cron_fleet",
     # Compat
     "PlatformInfo",
     "get_platform_info",

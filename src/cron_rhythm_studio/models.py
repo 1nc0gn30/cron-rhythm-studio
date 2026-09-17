@@ -216,3 +216,70 @@ class CronDiffReport:
             "summary": self.summary,
         }
 
+
+@dataclass
+class FleetConcurrencyPeak:
+    """Represents a moment where multiple cron jobs fire concurrently."""
+    timestamp_iso: str
+    concurrency: int
+    job_names: List[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "timestamp_iso": self.timestamp_iso,
+            "concurrency": self.concurrency,
+            "job_names": list(self.job_names),
+        }
+
+
+@dataclass
+class FleetRebalanceSuggestion:
+    """Recommended schedule phase shift to alleviate thundering herd."""
+    job_name: str
+    original_expression: str
+    optimized_expression: str
+    shift_minutes: int
+    rationale: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "job_name": self.job_name,
+            "original_expression": self.original_expression,
+            "optimized_expression": self.optimized_expression,
+            "shift_minutes": self.shift_minutes,
+            "rationale": self.rationale,
+        }
+
+
+@dataclass
+class FleetAuditReport:
+    """Comprehensive analysis of multi-job cron fleet concurrency and thundering herd risk."""
+    total_jobs: int
+    horizon_hours: int
+    max_concurrency_before: int
+    max_concurrency_after: int
+    thundering_herd_score_before: float
+    thundering_herd_score_after: float
+    peak_hotspots: List[FleetConcurrencyPeak]
+    rebalance_suggestions: List[FleetRebalanceSuggestion]
+    optimized_crontab: str
+    kubernetes_manifests: str
+    ascii_concurrency_profile: str
+    svg_concurrency_chart: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "total_jobs": self.total_jobs,
+            "horizon_hours": self.horizon_hours,
+            "max_concurrency_before": self.max_concurrency_before,
+            "max_concurrency_after": self.max_concurrency_after,
+            "thundering_herd_score_before": round(self.thundering_herd_score_before, 2),
+            "thundering_herd_score_after": round(self.thundering_herd_score_after, 2),
+            "peak_hotspots": [p.to_dict() for p in self.peak_hotspots],
+            "rebalance_suggestions": [s.to_dict() for s in self.rebalance_suggestions],
+            "optimized_crontab": self.optimized_crontab,
+            "kubernetes_manifests": self.kubernetes_manifests,
+            "ascii_concurrency_profile": self.ascii_concurrency_profile,
+            "svg_concurrency_chart": self.svg_concurrency_chart,
+        }
+

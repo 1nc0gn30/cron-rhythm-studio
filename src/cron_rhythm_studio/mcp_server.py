@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from .catalog import PRESETS, get_categories, get_preset, list_presets, search_presets
 from .compat import PlatformInfo, get_platform_info
+from .fleet_optimizer import audit_cron_fleet
 from .humanizer import explain_cron_parts, humanize_cron
 from .models import (
     CronFieldType,
@@ -253,6 +254,35 @@ TOOL_DEFINITIONS = [
                     "description": "Optional filter by category."
                 }
             }
+        }
+    },
+    {
+        "name": "cron_audit_fleet",
+        "description": "Audit a fleet of cron jobs for simultaneous execution spikes and thundering herd risks, and compute optimal phase-shifted schedules.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "jobs": {
+                    "type": "object",
+                    "description": "Mapping of job names to cron expressions, e.g. {'db_backup': '0 0 * * *', 'email_digest': '0 0 * * *'}."
+                },
+                "horizon_hours": {
+                    "type": "integer",
+                    "description": "Analysis horizon window in hours (default: 24).",
+                    "default": 24
+                },
+                "auto_rebalance": {
+                    "type": "boolean",
+                    "description": "Whether to calculate optimal desynchronized schedules. Default: true.",
+                    "default": True
+                },
+                "max_shift_minutes": {
+                    "type": "integer",
+                    "description": "Maximum allowed minute phase shift offset. Default: 25.",
+                    "default": 25
+                }
+            },
+            "required": ["jobs"]
         }
     }
 ]
@@ -527,6 +557,33 @@ def _execute_tool_diagnostics(arguments: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+
+def _execute_tool_audit_fleet(arguments: Dict[str, Any]) -> Dict[str, Any]:
+    raw_jobs = arguments.get("jobs", {})
+    horizon = int(arguments.get("horizon_hours", 24))
+    auto_rebal = bool(arguments.get("auto_rebalance", True))
+    max_shift = int(arguments.get("max_shift_minutes", 25))
+
+    jobs: Dict[str, str] = {}
+    if isinstance(raw_jobs, dict):
+        jobs = {str(k): str(v) for k, v in raw_jobs.items()}
+    elif isinstance(raw_jobs, list):
+        for idx, item in enumerate(raw_jobs):
+            if isinstance(item, dict) and "expression" in item:
+                name = item.get("name", f"job_{idx + 1}")
+                jobs[name] = str(item["expression"])
+            elif isinstance(item, str):
+                jobs[f"job_{idx + 1}"] = item
+
+    report = audit_cron_fleet(
+        jobs=jobs,
+        horizon_hours=horizon,
+        auto_rebalance=auto_rebal,
+        max_shift_minutes=max_shift,
+    )
+    return report.to_dict()
+
+
 # Tool Dispatcher Map
 TOOL_HANDLERS = {
     "cron_parse_expression": _execute_tool_parse,
@@ -538,6 +595,7 @@ TOOL_HANDLERS = {
     "cron_diagnostics": _execute_tool_diagnostics,
     "cron_calculate_timeline": _execute_tool_next_runs,
     "cron_preset_catalog": _execute_tool_list_presets,
+    "cron_audit_fleet": _execute_tool_audit_fleet,
 }
 
 
