@@ -165,3 +165,54 @@ class CronPreset:
             "description": self.description,
             "tags": list(self.tags),
         }
+
+
+@dataclass
+class NextRunWithJitter:
+    """Calculated execution timestamp with added jitter offset."""
+    base_datetime_iso: str
+    jittered_datetime_iso: str
+    jitter_offset_seconds: float
+    index: int
+    day_name: str
+    seed_key: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "base_datetime_iso": self.base_datetime_iso,
+            "jittered_datetime_iso": self.jittered_datetime_iso,
+            "jitter_offset_seconds": round(self.jitter_offset_seconds, 2),
+            "index": self.index,
+            "day_name": self.day_name,
+            "seed_key": self.seed_key,
+        }
+
+
+@dataclass
+class CronDiffReport:
+    """Comparison and overlap audit between two cron schedules."""
+    expr_a: str
+    expr_b: str
+    horizon_hours: int
+    runs_a_count: int
+    runs_b_count: int
+    exact_collision_count: int
+    near_collision_count: int
+    collision_timestamps: List[str] = field(default_factory=list)
+    overlap_percentage: float = 0.0
+    summary: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "expr_a": self.expr_a,
+            "expr_b": self.expr_b,
+            "horizon_hours": self.horizon_hours,
+            "runs_a_count": self.runs_a_count,
+            "runs_b_count": self.runs_b_count,
+            "exact_collision_count": self.exact_collision_count,
+            "near_collision_count": self.near_collision_count,
+            "collision_timestamps": list(self.collision_timestamps),
+            "overlap_percentage": round(self.overlap_percentage, 2),
+            "summary": self.summary,
+        }
+

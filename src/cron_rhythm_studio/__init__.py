@@ -17,18 +17,27 @@ from .compat import (
 )
 from .humanizer import explain_cron_parts, humanize_cron
 from .models import (
+    CronDiffReport,
     CronFieldType,
     CronPreset,
     CronScheduleAST,
     CronTargetFormat,
     NextRunItem,
+    NextRunWithJitter,
     RhythmCell,
     RhythmMatrixReport,
     TranspileResult,
 )
 from .parser import parse_cron, tokenize_cron, validate_cron
 from .rhythm_matrix import generate_rhythm_matrix, render_ascii_rhythm_matrix
-from .timeline_engine import is_day_match, next_run, next_runs, prev_run
+from .timeline_engine import (
+    diff_cron_schedules,
+    is_day_match,
+    next_run,
+    next_runs,
+    next_runs_with_jitter,
+    prev_run,
+)
 from .transpiler import transpile_all, transpile_cron
 
 __version__ = "0.1.0"
@@ -39,6 +48,8 @@ __all__ = [
     "CronTargetFormat",
     "CronScheduleAST",
     "NextRunItem",
+    "NextRunWithJitter",
+    "CronDiffReport",
     "TranspileResult",
     "RhythmCell",
     "RhythmMatrixReport",
@@ -61,7 +72,9 @@ __all__ = [
     # Timeline Engine
     "next_run",
     "next_runs",
+    "next_runs_with_jitter",
     "prev_run",
+    "diff_cron_schedules",
     "is_day_match",
     # Humanizer
     "humanize_cron",

@@ -8,6 +8,8 @@ for special symbols (L, W, ?, #).
 from __future__ import annotations
 
 import calendar
+import hashlib
+import random
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Union
 try:
@@ -15,7 +17,7 @@ try:
 except ImportError:
     from backports import zoneinfo  # type: ignore
 
-from .models import CronScheduleAST, NextRunItem
+from .models import CronDiffReport, CronScheduleAST, NextRunItem, NextRunWithJitter
 from .parser import parse_cron
 
 
@@ -418,3 +420,174 @@ def prev_run(
         return curr
 
     raise ValueError(f"No previous execution found for '{ast.expression}' within history horizon")
+
+
+def next_runs_with_jitter(
+    ast_or_expr: Union[CronScheduleAST, str],
+    count: int = 10,
+    max_jitter_seconds: float = 60.0,
+    jitter_mode: str = "random",  # 'random' or 'hash'
+    seed_key: Optional[str] = None,
+    start_time: Optional[datetime] = None,
+    tz_name: Optional[str] = None,
+) -> List[NextRunWithJitter]:
+    """Calculate upcoming execution dates with randomized or deterministic hash jitter.
+
+    Essential for distributed systems and microservices to prevent thundering herd
+    problems when thousands of nodes execute scheduled tasks simultaneously.
+
+    Args:
+        ast_or_expr: Parsed CronScheduleAST or raw cron string.
+        count: Number of executions to calculate.
+        max_jitter_seconds: Maximum jitter window in seconds (± window).
+        jitter_mode: 'random' for pseudo-random offset, or 'hash' for deterministic node hashing.
+        seed_key: Node identifier, job ID, or seed string (used for hash mode or random seed).
+        start_time: Starting pivot datetime.
+        tz_name: Target timezone name.
+
+    Returns:
+        List[NextRunWithJitter]: Jittered execution timeline items.
+    """
+    if isinstance(ast_or_expr, str):
+        ast = parse_cron(ast_or_expr)
+    else:
+        ast = ast_or_expr
+
+    if not ast.is_valid:
+        raise ValueError(f"Cannot calculate jitter runs for invalid cron: {ast.error_message}")
+    if ast.is_reboot:
+        raise ValueError("Cannot calculate jitter runs for @reboot expression")
+
+    tz = _get_tz(tz_name)
+    if start_time is None:
+        current_pivot = datetime.now(tz=tz) if tz else datetime.now()
+    elif tz and start_time.tzinfo is None:
+        current_pivot = start_time.replace(tzinfo=tz)
+    else:
+        current_pivot = start_time
+
+    rng = random.Random(seed_key) if (seed_key and jitter_mode == "random") else random.Random()
+    results: List[NextRunWithJitter] = []
+
+    for i in range(count):
+        try:
+            base_run = next_run(ast, start_time=current_pivot, tz_name=tz_name)
+        except ValueError:
+            break
+
+        if jitter_mode == "hash" and seed_key:
+            # Deterministic hash: SHA256 of seed_key + index + base_run iso
+            h_input = f"{seed_key}:{i}:{base_run.isoformat()}".encode("utf-8")
+            h_val = int(hashlib.sha256(h_input).hexdigest()[:8], 16)
+            # Map [0, 2^32 - 1] to [-max_jitter_seconds, max_jitter_seconds]
+            norm = (h_val / 0xFFFFFFFF) * 2.0 - 1.0
+            offset_sec = norm * max_jitter_seconds
+        else:
+            offset_sec = rng.uniform(-max_jitter_seconds, max_jitter_seconds)
+
+        jittered_run = base_run + timedelta(seconds=offset_sec)
+
+        results.append(
+            NextRunWithJitter(
+                base_datetime_iso=base_run.isoformat(),
+                jittered_datetime_iso=jittered_run.isoformat(),
+                jitter_offset_seconds=round(offset_sec, 2),
+                index=i,
+                day_name=base_run.strftime("%A"),
+                seed_key=seed_key,
+            )
+        )
+        current_pivot = base_run
+
+    return results
+
+
+def diff_cron_schedules(
+    expr_a: Union[str, CronScheduleAST],
+    expr_b: Union[str, CronScheduleAST],
+    horizon_hours: int = 168,
+    start_time: Optional[datetime] = None,
+    near_collision_seconds: int = 300,
+) -> CronDiffReport:
+    """Compare and analyze collision risks between two cron schedules over a time horizon.
+
+    Calculates all execution timestamps for both schedules within the horizon window,
+    identifying exact concurrent executions and near collisions.
+
+    Args:
+        expr_a: First cron schedule.
+        expr_b: Second cron schedule.
+        horizon_hours: Horizon window to scan in hours (default 168 = 7 days).
+        start_time: Starting pivot datetime.
+        near_collision_seconds: Threshold in seconds to consider two jobs running in near collision.
+
+    Returns:
+        CronDiffReport: Detailed report with run counts, collisions, and overlap analysis.
+    """
+    ast_a = parse_cron(expr_a) if isinstance(expr_a, str) else expr_a
+    ast_b = parse_cron(expr_b) if isinstance(expr_b, str) else expr_b
+
+    if not ast_a.is_valid:
+        raise ValueError(f"Invalid cron expression A: {ast_a.error_message}")
+    if not ast_b.is_valid:
+        raise ValueError(f"Invalid cron expression B: {ast_b.error_message}")
+
+    pivot = start_time or datetime.now()
+    end_time = pivot + timedelta(hours=horizon_hours)
+
+    def _collect_runs(ast: CronScheduleAST) -> List[datetime]:
+        runs: List[datetime] = []
+        curr = pivot
+        while curr < end_time:
+            try:
+                nxt = next_run(ast, start_time=curr)
+                if nxt > end_time:
+                    break
+                runs.append(nxt)
+                curr = nxt
+            except ValueError:
+                break
+        return runs
+
+    runs_a = _collect_runs(ast_a)
+    runs_b = _collect_runs(ast_b)
+
+    exact_collisions: List[str] = []
+    near_collision_count = 0
+
+    # Set of minute-level timestamps for A
+    a_timestamps = {r.replace(microsecond=0) for r in runs_a}
+    b_timestamps = {r.replace(microsecond=0) for r in runs_b}
+
+    for dt in a_timestamps:
+        if dt in b_timestamps:
+            exact_collisions.append(dt.isoformat())
+
+    # Count near collisions (within near_collision_seconds, excluding exact)
+    for ra in runs_a:
+        for rb in runs_b:
+            diff = abs((ra - rb).total_seconds())
+            if 0 < diff <= near_collision_seconds:
+                near_collision_count += 1
+
+    total_runs = len(runs_a) + len(runs_b)
+    overlap_pct = (2 * len(exact_collisions) / total_runs * 100.0) if total_runs > 0 else 0.0
+
+    summary = (
+        f"Compared '{ast_a.expression}' ({len(runs_a)} runs) vs '{ast_b.expression}' ({len(runs_b)} runs) "
+        f"over {horizon_hours}h. Found {len(exact_collisions)} exact collisions and {near_collision_count} near-collisions."
+    )
+
+    return CronDiffReport(
+        expr_a=ast_a.expression,
+        expr_b=ast_b.expression,
+        horizon_hours=horizon_hours,
+        runs_a_count=len(runs_a),
+        runs_b_count=len(runs_b),
+        exact_collision_count=len(exact_collisions),
+        near_collision_count=near_collision_count,
+        collision_timestamps=sorted(exact_collisions),
+        overlap_percentage=round(overlap_pct, 2),
+        summary=summary,
+    )
+
