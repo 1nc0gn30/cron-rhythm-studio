@@ -34,6 +34,7 @@ from .models import (
 from .parser import parse_cron, tokenize_cron, validate_cron
 from .rhythm_matrix import generate_rhythm_matrix, render_ascii_rhythm_matrix
 from .timeline_engine import next_run, next_runs
+from .timezone_auditor import audit_dst_anomalies, project_world_flight_board
 from .transpiler import transpile_all, transpile_cron
 
 # MCP Protocol Version and Metadata
@@ -283,6 +284,57 @@ TOOL_DEFINITIONS = [
                 }
             },
             "required": ["jobs"]
+        }
+    },
+    {
+        "name": "cron_audit_dst_anomalies",
+        "description": "Audit a cron expression for Daylight Saving Time (DST) clock discontinuities (skipped executions at Spring Forward, duplicate runs at Fall Back) with safe alternative recommendations.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "type": "string",
+                    "description": "Cron expression to audit (e.g. '0 2 * * *', '30 2 * * 0', '0 1 * * *')."
+                },
+                "timezone": {
+                    "type": "string",
+                    "description": "Target timezone to evaluate (default: 'America/New_York').",
+                    "default": "America/New_York"
+                },
+                "reference_year": {
+                    "type": "integer",
+                    "description": "Reference calendar year for transition dates (default: current year)."
+                }
+            },
+            "required": ["expression"]
+        }
+    },
+    {
+        "name": "cron_multizone_flight_board",
+        "description": "Synchronize and project upcoming cron execution times across major global tech hubs (UTC, NYC, SF, London, Berlin, Tokyo, Sydney) with business-hour indicator.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "type": "string",
+                    "description": "Cron expression to evaluate (e.g. '0 14 * * 1-5')."
+                },
+                "home_timezone": {
+                    "type": "string",
+                    "description": "Home timezone (default: 'America/New_York').",
+                    "default": "America/New_York"
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "Number of upcoming runs to project across hubs (default: 3).",
+                    "default": 3
+                },
+                "start_time": {
+                    "type": "string",
+                    "description": "Optional starting ISO-8601 reference datetime."
+                }
+            },
+            "required": ["expression"]
         }
     }
 ]
@@ -584,6 +636,39 @@ def _execute_tool_audit_fleet(arguments: Dict[str, Any]) -> Dict[str, Any]:
     return report.to_dict()
 
 
+def _execute_tool_audit_dst(arguments: Dict[str, Any]) -> Dict[str, Any]:
+    expr = str(arguments.get("expression", "")).strip()
+    tz_name = str(arguments.get("timezone", "America/New_York")).strip()
+    ref_year = arguments.get("reference_year")
+    if ref_year is not None:
+        try:
+            ref_year = int(ref_year)
+        except (ValueError, TypeError):
+            ref_year = None
+    report = audit_dst_anomalies(expr, tz_name=tz_name, reference_year=ref_year)
+    return report.to_dict()
+
+
+def _execute_tool_flight_board(arguments: Dict[str, Any]) -> Dict[str, Any]:
+    expr = str(arguments.get("expression", "")).strip()
+    home_tz = str(arguments.get("home_timezone", "America/New_York")).strip()
+    count = int(arguments.get("count", 3))
+    start_time_str = arguments.get("start_time")
+    start_dt = None
+    if start_time_str:
+        try:
+            start_dt = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+        except Exception:
+            start_dt = None
+
+    reports = project_world_flight_board(expr, home_tz=home_tz, run_count=count, start_time=start_dt)
+    return {
+        "expression": expr,
+        "home_timezone": home_tz,
+        "runs": [r.to_dict() for r in reports],
+    }
+
+
 # Tool Dispatcher Map
 TOOL_HANDLERS = {
     "cron_parse_expression": _execute_tool_parse,
@@ -596,6 +681,8 @@ TOOL_HANDLERS = {
     "cron_calculate_timeline": _execute_tool_next_runs,
     "cron_preset_catalog": _execute_tool_list_presets,
     "cron_audit_fleet": _execute_tool_audit_fleet,
+    "cron_audit_dst_anomalies": _execute_tool_audit_dst,
+    "cron_multizone_flight_board": _execute_tool_flight_board,
 }
 
 

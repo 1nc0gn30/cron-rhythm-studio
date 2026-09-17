@@ -22,7 +22,13 @@ keywords = [
     "kubernetes",
     "mcp",
     "transpiler",
-    "rhythm-matrix"
+    "rhythm-matrix",
+    "dst-audit",
+    "timezone",
+    "world-clock",
+    "daylight-saving",
+    "fleet-optimizer",
+    "thundering-herd",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

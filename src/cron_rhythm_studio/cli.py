@@ -44,6 +44,12 @@ from .models import (
 from .parser import parse_cron, tokenize_cron, validate_cron
 from .rhythm_matrix import generate_rhythm_matrix, render_ascii_rhythm_matrix
 from .timeline_engine import next_run, next_runs, prev_run
+from .timezone_auditor import (
+    audit_dst_anomalies,
+    project_world_flight_board,
+    render_ascii_dst_report,
+    render_ascii_world_board,
+)
 from .transpiler import transpile_all, transpile_cron
 
 __version__ = "0.1.0"
@@ -455,6 +461,44 @@ def cmd_fleet(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dst_audit(args: argparse.Namespace) -> int:
+    """Handler for `dst-audit` subcommand."""
+    expr = args.expression
+    tz_name = getattr(args, "timezone", "America/New_York") or "America/New_York"
+    year = getattr(args, "year", None)
+    if year:
+        try:
+            year = int(year)
+        except Exception:
+            year = None
+
+    report = audit_dst_anomalies(expr, tz_name=tz_name, reference_year=year)
+    if getattr(args, "json", False):
+        print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+
+    print(render_ascii_dst_report(report))
+    print()
+    return 0
+
+
+def cmd_tz_board(args: argparse.Namespace) -> int:
+    """Handler for `tz-board` subcommand."""
+    expr = args.expression
+    home_tz = getattr(args, "home_tz", "America/New_York") or "America/New_York"
+    count = getattr(args, "count", 3) or 3
+
+    reports = project_world_flight_board(expr, home_tz=home_tz, run_count=count)
+    if getattr(args, "json", False):
+        print(json.dumps([r.to_dict() for r in reports], indent=2, ensure_ascii=False))
+        return 0
+
+    for rep in reports:
+        print(render_ascii_world_board(rep))
+        print()
+    return 0
+
+
 def cmd_presets(args: argparse.Namespace) -> int:
     """Handler for `presets` subcommand."""
     cat = args.category
@@ -633,7 +677,7 @@ def cmd_test(args: argparse.Namespace) -> int:
 # Material 3 Influenced Web UI & REST API Server
 # ============================================================================
 
-MATERIAL_WEB_HTML = """<!DOCTYPE html>
+MATERIAL_WEB_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1350,6 +1394,29 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
             self._send_json(report.to_dict())
             return
 
+        # 7c. REST API: /api/dst-audit
+        if path == "/api/dst-audit":
+            expr = query.get("expr", query.get("expression", ["0 2 * * *"]))[0]
+            tz = query.get("tz", query.get("timezone", ["America/New_York"]))[0]
+            year_val = query.get("year", [None])[0]
+            year = int(year_val) if year_val and year_val.isdigit() else None
+            rep = audit_dst_anomalies(expr, tz_name=tz, reference_year=year)
+            self._send_json(rep.to_dict())
+            return
+
+        # 7d. REST API: /api/tz-board
+        if path == "/api/tz-board":
+            expr = query.get("expr", query.get("expression", ["0 14 * * 1-5"]))[0]
+            home_tz = query.get("home_tz", ["America/New_York"])[0]
+            count = int(query.get("count", ["3"])[0])
+            reps = project_world_flight_board(expr, home_tz=home_tz, run_count=count)
+            self._send_json({
+                "expression": expr,
+                "home_timezone": home_tz,
+                "runs": [r.to_dict() for r in reps],
+            })
+            return
+
         # 8. REST API: /api/health or /api/diagnostics
         if path in ("/api/health", "/api/diagnostics"):
             plat_info = get_platform_info()
@@ -1396,6 +1463,38 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
                 max_shift_minutes=max_shift,
             )
             self._send_json(report.to_dict())
+            return
+
+        if path == "/api/dst-audit":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            try:
+                data = json.loads(body.decode("utf-8"))
+            except Exception:
+                data = {}
+            expr = str(data.get("expression", data.get("expr", "0 2 * * *")))
+            tz = str(data.get("timezone", data.get("tz", "America/New_York")))
+            year = data.get("year")
+            rep = audit_dst_anomalies(expr, tz_name=tz, reference_year=int(year) if year else None)
+            self._send_json(rep.to_dict())
+            return
+
+        if path == "/api/tz-board":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            try:
+                data = json.loads(body.decode("utf-8"))
+            except Exception:
+                data = {}
+            expr = str(data.get("expression", data.get("expr", "0 14 * * 1-5")))
+            home_tz = str(data.get("home_timezone", data.get("home_tz", "America/New_York")))
+            count = int(data.get("count", 3))
+            reps = project_world_flight_board(expr, home_tz=home_tz, run_count=count)
+            self._send_json({
+                "expression": expr,
+                "home_timezone": home_tz,
+                "runs": [r.to_dict() for r in reps],
+            })
             return
 
         self.send_response(404)
@@ -1509,6 +1608,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_fleet.add_argument("--svg", type=str, default=None, help="Save SVG concurrency chart to file")
     p_fleet.add_argument("--json", action="store_true", help="Output JSON audit report")
     p_fleet.set_defaults(func=cmd_fleet)
+
+    # 5c. dst-audit
+    p_dst = subparsers.add_parser("dst-audit", parents=[parent_parser], help="Audit Daylight Saving Time clock shift risks (skipped & duplicate runs)")
+    p_dst.add_argument("expression", type=str, help="Cron expression to audit")
+    p_dst.add_argument("-tz", "--timezone", type=str, default="America/New_York", help="Target timezone (default: America/New_York)")
+    p_dst.add_argument("-y", "--year", type=int, default=None, help="Reference calendar year (default: current year)")
+    p_dst.add_argument("--json", action="store_true", help="Output JSON audit report")
+    p_dst.set_defaults(func=cmd_dst_audit)
+
+    # 5d. tz-board
+    p_board = subparsers.add_parser("tz-board", parents=[parent_parser], help="Synchronize next runs across global tech hubs (flight departure board)")
+    p_board.add_argument("expression", type=str, help="Cron expression")
+    p_board.add_argument("--home-tz", type=str, default="America/New_York", help="Home timezone (default: America/New_York)")
+    p_board.add_argument("-n", "--count", type=int, default=3, help="Number of upcoming executions to project (default: 3)")
+    p_board.add_argument("--json", action="store_true", help="Output JSON flight board")
+    p_board.set_defaults(func=cmd_tz_board)
 
     # 6. presets
     p_pre = subparsers.add_parser("presets", parents=[parent_parser], help="List curated production cron templates")

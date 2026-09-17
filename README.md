@@ -31,6 +31,10 @@
   - Transpiles seamlessly across **UNIX Crontab**, **Quartz Scheduler**, **AWS EventBridge**, **Systemd Timers** (`OnCalendar`), **GitHub Actions Workflows**, and **Kubernetes CronJobs**.
 - **24×7 Rhythm Heatmap Matrix**:
   - Maps 168 weekly hour slots ($7 \text{ days} \times 24 \text{ hours}$) to evaluate load distribution, peak hours, and collision risks.
+- **DST Transition Anomaly Auditor**:
+  - Audits cron schedules for critical clock discontinuities during Daylight Saving Time shifts (identifies skipped jobs during Spring Forward and duplicate executions during Fall Back with safe alternative recommendations).
+- **Multi-City World Run Radar (Flight Departure Board)**:
+  - Synchronizes upcoming cron execution times across major global tech hubs (UTC, New York, San Francisco, London, Berlin/Paris, Tokyo, Sydney) with real-time business hour indicators.
 - **Production Schedule Catalog**:
   - 40+ curated presets for database backups, SSL renewal, log rotation, cache warming, and telemetry probes.
 - **FastMCP Protocol 2.0 Server**:
@@ -76,10 +80,16 @@ cron-rhythm transpile "0 4 * * 1" --target systemd
 # 5. Generate 24x7 Rhythm Heatmap
 cron-rhythm rhythm "*/30 * * * *"
 
-# 6. Browse built-in production schedule templates
+# 6. Audit Daylight Saving Time (DST) clock discontinuities (skipped / duplicate runs)
+cron-rhythm dst-audit "0 2 * * *" --timezone America/New_York
+
+# 7. Project next runs across global tech hubs (flight departure board)
+cron-rhythm tz-board "0 14 * * 1-5" --count 3
+
+# 8. Browse built-in production schedule templates
 cron-rhythm presets --search backup
 
-# 7. Launch the Cron Rhythm Studio Web App (Material 3 influenced)
+# 9. Launch the Cron Rhythm Studio Web App (Material 3 influenced)
 cron-rhythm serve --port 8080
 ```
 

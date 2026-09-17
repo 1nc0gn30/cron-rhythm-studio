@@ -42,6 +42,16 @@ from .timeline_engine import (
     next_runs_with_jitter,
     prev_run,
 )
+from .timezone_auditor import (
+    CronDSTAnomaly,
+    DSTAuditReport,
+    WorldFlightBoardReport,
+    WorldHubRun,
+    audit_dst_anomalies,
+    project_world_flight_board,
+    render_ascii_dst_report,
+    render_ascii_world_board,
+)
 from .transpiler import transpile_all, transpile_cron
 
 __version__ = "0.1.0"
@@ -99,4 +109,13 @@ __all__ = [
     "get_preset",
     "search_presets",
     "get_categories",
+    # Timezone & DST Auditor
+    "CronDSTAnomaly",
+    "DSTAuditReport",
+    "WorldFlightBoardReport",
+    "WorldHubRun",
+    "audit_dst_anomalies",
+    "project_world_flight_board",
+    "render_ascii_dst_report",
+    "render_ascii_world_board",
 ]
