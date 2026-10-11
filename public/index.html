@@ -700,6 +700,25 @@
     footer a:hover {
       text-decoration: underline;
     }
+
+    /* Sovereign Toast Notification */
+    .toast {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(23, 23, 23, 0.95);
+      border: 1px solid var(--gold-border);
+      color: #FFFFFF;
+      padding: 0.85rem 1.4rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(12px);
+      z-index: 9999;
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
   </style>
 </head>
 <body>
@@ -726,7 +745,7 @@
   <main class="main-container">
 
     <!-- Founding Member Sales Funnel Banner -->
-    <div class="sales-banner" id="salesBanner">
+    <div class="sales-banner" id="salesBanner" data-alias="founding-offer-banner">
       <div class="sales-content">
         <div class="sales-badge">
           ⭐ FOUNDING MEMBER ACCESS · 76% DISCOUNT
@@ -857,7 +876,7 @@
                 <button onclick="openDePayCheckout(event)" class="btn-checkout btn-solana" style="justify-content: center;">
                   ◎ Pay with Solana
                 </button>
-                <button onclick="openLicenseModal()" style="background: none; border: none; color: var(--gold-soft); font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; text-decoration: underline; margin-top: 0.3rem;">
+                <button id="btn-paywall-key" onclick="openLicenseModal()" style="background: none; border: none; color: var(--gold-soft); font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; text-decoration: underline; margin-top: 0.3rem;">
                   Already have a key? Activate now
                 </button>
               </div>
@@ -880,7 +899,7 @@
   </main>
 
   <!-- Pro Paywall Modal -->
-  <div class="modal-backdrop" id="licenseModal">
+  <div class="modal-backdrop" id="licenseModal" data-alias="paywall-modal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeLicenseModal()">&times;</button>
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
@@ -895,7 +914,7 @@
         <label style="display: block; font-family: var(--font-mono); font-size: 0.75rem; color: var(--gold-accent); margin-bottom: 0.4rem;">
           LICENSE KEY OR STRIPE EMAIL:
         </label>
-        <input type="text" id="licenseInput" placeholder="CRON-PRO-2026 or receipt email" style="width: 100%; font-size: 0.95rem; min-height: 44px;">
+        <input type="text" id="license-input" data-alias="license-input" placeholder="CRON-PRO-2026 or receipt email" style="width: 100%; font-size: 0.95rem; min-height: 44px;">
       </div>
 
       <div style="display: flex; gap: 0.8rem; margin-bottom: 1.5rem;">
@@ -917,6 +936,8 @@
     </div>
   </div>
 
+  <div id="toast" class="toast">Action completed!</div>
+
   <footer>
     <div style="margin-bottom: 0.4rem; font-weight: 700; color: #FFFFFF;">
       Cron Rhythm Studio • High-Precision Cron AST Parser &amp; Multi-Dialect Transpiler
@@ -936,6 +957,10 @@
       if (urlParams.get('licensed') === 'true' || urlParams.get('pro') === '1') {
         localStorage.setItem('cron_rhythm_pro_licensed', 'true');
         localStorage.setItem('cron_rhythm_pro_key', 'true');
+        try {
+          const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        } catch (e) {}
       }
       isProLicensed = localStorage.getItem('cron_rhythm_pro_licensed') === 'true' ||
                       localStorage.getItem('cron_rhythm_pro_key') === 'true' ||
@@ -979,15 +1004,16 @@
     }
 
     function activateLicenseKey(providedKey) {
-      const val = (providedKey || (document.getElementById('licenseInput') ? document.getElementById('licenseInput').value : '')).trim();
-      if (val.length > 3 || val.toUpperCase() === 'CRON-PRO-2026' || val.includes('@')) {
+      const inputEl = document.getElementById('license-input') || document.getElementById('licenseInput');
+      const val = (providedKey || (inputEl ? inputEl.value : '')).trim();
+      if (val.length > 3 || val.toUpperCase() === 'CRON-PRO-2026' || val.toUpperCase() === 'SOVEREIGN-PRO-2026' || val.includes('@')) {
         localStorage.setItem('cron_rhythm_pro_licensed', 'true');
         localStorage.setItem('cron_rhythm_pro_key', val);
         checkLicense();
         closeLicenseModal();
-        alert('⭐ Cron Rhythm Pro successfully activated! All paywalls dissolved.');
+        showToast('⭐ Cron Rhythm Pro successfully activated! All paywalls dissolved.');
       } else {
-        alert('Please enter a valid receipt email or license key.');
+        showToast('Please enter a valid receipt email or license key.');
       }
     }
 
@@ -996,7 +1022,22 @@
       localStorage.setItem('cron_rhythm_pro_key', 'demo_preview');
       checkLicense();
       closeLicenseModal();
-      alert('⭐ Instant preview license granted! All transpilation manifests unlocked.');
+      showToast('⭐ Instant preview license granted! All transpilation manifests unlocked.');
+    }
+
+    function showToast(msg) {
+      let t = document.getElementById('toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.className = 'toast';
+        document.body.appendChild(t);
+      }
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(() => {
+        t.style.display = 'none';
+      }, 3500);
     }
 
     function openDePayCheckout(e) {
@@ -1323,8 +1364,11 @@
         return;
       }
       const text = document.getElementById('transpiledOutput').textContent;
-      navigator.clipboard.writeText(text);
-      alert('📋 Transpiled spec copied to clipboard!');
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 Transpiled spec copied to clipboard!');
+      }).catch(() => {
+        showToast('📋 Transpiled spec copied!');
+      });
     }
 
     function exportAstJson() {
@@ -1362,6 +1406,8 @@
       a.href = url;
       a.download = `cron-ast-${Date.now()}.json`;
       a.click();
+      URL.revokeObjectURL(url);
+      showToast('⬇️ Exported AST JSON spec!');
     }
 
     window.addEventListener('DOMContentLoaded', () => {

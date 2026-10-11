@@ -1,17 +1,24 @@
 {
   "name": "cron-rhythm-studio",
   "version": "2.5.0",
-  "description": "Zero-Dependency AST Schedule Parser, 24×7 Rhythm Matrix, Multi-Dialect Transpiler & DST Anomaly Auditor — Desktop Workstation",
+  "description": "Zero-Dependency AST Schedule Parser, 24×7 Rhythm Matrix, Multi-Dialect Transpiler & DST Anomaly Auditor — Desktop & Web Workstation",
   "main": "electron/main.cjs",
+  "homepage": "https://cronrhythm.nullai.tech",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1nc0gn30/cron-rhythm-studio.git"
+  },
   "bin": {
     "cron-rhythm": "./bin/cron-rhythm.js",
     "cron-rhythm-studio": "./bin/cron-rhythm.js"
   },
   "scripts": {
-    "start": "python3 -m cron_rhythm_studio.cli serve --port 8080",
+    "start": "python3 -m http.server 8092 --directory public",
+    "serve:public": "python3 -m http.server 8092 --directory public",
     "electron": "electron .",
     "app": "electron .",
-    "test": "pytest tests/"
+    "test": "pytest tests/",
+    "test:ui": "python3 scripts/verify_ui.py"
   },
   "keywords": [
     "cron",
@@ -24,7 +31,7 @@
     "zero-egress",
     "sovereign",
     "electron",
-    "zoth"
+    "nullai"
   ],
   "author": "Neal Frazier Tech (@1nc0gn30) • NullAI Platform",
   "license": "MIT",
