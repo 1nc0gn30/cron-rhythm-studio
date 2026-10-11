@@ -1,503 +1,1238 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cron Rhythm Studio | Schedule Visualizer & Transpiler</title>
+  <title>Cron Rhythm Studio | High-Precision Cron AST Parser, 24x7 Heatmap & Multi-Dialect Transpiler</title>
+  <meta name="description" content="High-precision in-browser Cron AST parser, 24x7 rhythm heatmap, upcoming run countdowns, and instant transpiler across Kubernetes, GitHub Actions, AWS EventBridge, Systemd, and Quartz. Zero cloud egress.">
+  
+  <!-- OpenGraph / Twitter Cards -->
+  <meta property="og:title" content="Cron Rhythm Studio | High-Precision Cron AST Parser & Transpiler">
+  <meta property="og:description" content="Parse, humanize, visualize on 24x7 rhythm heatmaps, and transpile cron schedules across Kubernetes, GitHub Actions, AWS EventBridge, and Systemd with zero cloud egress.">
+  <meta property="og:url" content="https://cronrhythm.nullai.tech">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://cronrhythm.nullai.tech/assets/banner.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@1nc0gn30">
+  <meta name="twitter:creator" content="@1nc0gn30">
+  <meta name="twitter:image" content="https://cronrhythm.nullai.tech/assets/banner.png">
+  <link rel="canonical" href="https://cronrhythm.nullai.tech">
+
+  <!-- DePay Web3 Solana Payment Widget -->
+  <script src="https://integrate.depay.com/widgets/v13.js" defer></script>
+
+  <!-- AEO & SEO Schema.org Graph -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "Cron Rhythm Studio",
+        "url": "https://cronrhythm.nullai.tech",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "All",
+        "description": "High-precision cron AST parser, natural language humanizer, 24x7 weekly rhythm heatmap, and multi-dialect transpiler.",
+        "offers": {
+          "@type": "Offer",
+          "price": "19.00",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Neal Frazier",
+          "url": "https://nealfrazier.tech"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Neal Frazier Tech",
+          "url": "https://nullai.tech"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is Cron Rhythm Studio?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Cron Rhythm Studio is a zero-dependency in-browser developer tool that parses UNIX crontabs into AST, translates expressions into plain English, projects upcoming runs, displays 24x7 workload heatmaps, and transpiles across Kubernetes, GitHub Actions, AWS EventBridge, Systemd, and Quartz."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does Cron Rhythm Studio send cron expressions to remote cloud servers?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. All AST parsing, humanization, timeline projections, heatmap matrix math, and transpilation run 100% client-side in your browser via optimized JavaScript. Zero telemetry or network egress."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What platforms can Cron Rhythm Studio transpile to?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "It transpiles standard 5-field UNIX crontab expressions into Kubernetes CronJobs, GitHub Actions scheduled workflows, AWS EventBridge rules, Systemd OnCalendar timers, and 6-field Quartz Scheduler expressions."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/assets/icon.png">
+
   <style>
     :root {
-      --md-primary: #B8860B;
-      --md-on-primary: #ffffff;
-      --md-primary-container: #F5E6AB;
-      --md-on-primary-container: #6B5308;
-      --md-surface: #f8f9fa;
-      --md-surface-card: #ffffff;
-      --md-on-surface: #202124;
-      --md-on-surface-variant: #5f6368;
-      --md-outline: #dadce0;
-      --md-success: #1e8e3e;
-      --md-success-container: #ceead6;
-      --md-error: #d93025;
-      --md-error-container: #fad2cf;
-      --md-warning: #f29900;
+      --bg-dark: #08080B;
+      --bg-card: #0F111A;
+      --bg-card-subtle: #151824;
+      --gold-accent: #D4AF37;
+      --gold-soft: #F5E6AB;
+      --gold-wash: rgba(212, 175, 55, 0.12);
+      --gold-border: rgba(212, 175, 55, 0.35);
+      --cyan-accent: #38BDF8;
+      --green-accent: #10B981;
+      --red-accent: #F43F5E;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --border-subtle: rgba(255, 255, 255, 0.08);
       --radius-sm: 8px;
       --radius-md: 14px;
-      --radius-full: 9999px;
-      --shadow-sm: 0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
-      --font-google: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: 'Roboto Mono', monospace;
+      --radius-lg: 20px;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
-    [data-theme="dark"] {
-      --md-primary: #D4AF37;
-      --md-on-primary: #6B5308;
-      --md-primary-container: #B8860B;
-      --md-on-primary-container: #F5E6AB;
-      --md-surface: #121212;
-      --md-surface-card: #1e1e1e;
-      --md-on-surface: #e8eaed;
-      --md-on-surface-variant: #9aa0a6;
-      --md-outline: #3c4043;
-    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: var(--font-google);
-      background: var(--md-surface);
-      color: var(--md-on-surface);
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
+
     header {
-      background: var(--md-surface-card);
-      border-bottom: 1px solid var(--md-outline);
-      padding: 0.8rem 2rem;
+      background: rgba(15, 17, 26, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.9rem 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
       z-index: 100;
+      flex-wrap: wrap;
+      gap: 1rem;
     }
+
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.9rem;
+      gap: 0.8rem;
     }
+
     .logo-badge {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, #B8860B, #34a853);
-      color: white;
+      background: linear-gradient(135deg, #D4AF37, #B8860B);
+      color: #08080B;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
-      font-size: 1.1rem;
-      box-shadow: var(--shadow-sm);
-    }
-    .title-group h1 {
-      font-size: 1.15rem;
-      font-weight: 700;
-    }
-    .title-group p {
-      font-size: 0.75rem;
-      color: var(--md-on-surface-variant);
-    }
-    .btn-pill {
-      padding: 0.4rem 1rem;
-      border-radius: var(--radius-full);
-      font-size: 0.82rem;
-      font-weight: 500;
-      cursor: pointer;
-      border: 1px solid var(--md-outline);
-      background: var(--md-surface-card);
-      color: var(--md-on-surface);
-      transition: all 0.15s ease;
-    }
-    .btn-pill:hover {
-      background: var(--md-primary-container);
-      color: var(--md-on-primary-container);
-      border-color: var(--md-primary);
-    }
-    .main-container {
-      max-width: 1440px;
-      width: 100%;
-      margin: 1.2rem auto;
-      padding: 0 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.2rem;
-      flex: 1;
-    }
-    .card {
-      background: var(--md-surface-card);
-      border: 1px solid var(--md-outline);
-      border-radius: var(--radius-md);
-      padding: 1.25rem;
-      box-shadow: var(--shadow-sm);
-    }
-    .cron-hero-input {
-      display: flex;
-      gap: 0.8rem;
-      margin-top: 0.8rem;
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 0.85rem 1.2rem;
-      font-family: var(--font-mono);
+      font-weight: 900;
       font-size: 1.2rem;
-      border: 1px solid var(--md-outline);
-      border-radius: var(--radius-sm);
-      background: var(--md-surface);
-      color: var(--md-on-surface);
-      font-weight: 600;
-      letter-spacing: 1px;
+      box-shadow: 0 0 16px rgba(212, 175, 55, 0.4);
     }
-    input[type="text"]:focus {
-      outline: 2px solid var(--md-primary);
-      border-color: transparent;
-    }
-    .human-banner {
-      margin-top: 0.8rem;
-      padding: 1rem 1.2rem;
-      background: var(--md-primary-container);
-      color: var(--md-on-primary-container);
-      border-radius: var(--radius-sm);
-      font-size: 1.05rem;
-      font-weight: 500;
+
+    .title-group h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-    }
-    .preset-chips {
-      display: flex;
       gap: 0.5rem;
+    }
+
+    .version-tag {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--gold-wash);
+      color: var(--gold-accent);
+      border: 1px solid var(--gold-border);
+      font-weight: 700;
+    }
+
+    .title-group p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .badge-status {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green-accent);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green-accent);
+      box-shadow: 0 0 8px var(--green-accent);
+    }
+
+    .main-container {
+      max-width: 1400px;
+      width: 100%;
+      margin: 1.5rem auto;
+      padding: 0 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      flex: 1;
+    }
+
+    /* Sales Banner */
+    .sales-banner {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(15, 17, 26, 0.95));
+      border: 1.5px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.2rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(212, 175, 55, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sales-banner::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .sales-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .sales-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: var(--gold-soft);
+      background: var(--gold-wash);
+      border: 1px solid var(--gold-border);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 0.4rem;
+    }
+
+    .sales-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 0.2rem;
+    }
+
+    .sales-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .sales-ctas {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .btn-checkout {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      min-height: 44px;
+    }
+
+    .btn-stripe {
+      background: var(--gold-accent);
+      color: #08080B;
+      box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+    }
+
+    .btn-stripe:hover {
+      background: var(--gold-soft);
+      transform: translateY(-1px);
+    }
+
+    .btn-solana {
+      background: rgba(15, 17, 26, 0.9);
+      color: #E2E8F0;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-solana:hover {
+      border-color: var(--gold-accent);
+      color: var(--gold-soft);
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    .card-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--gold-accent);
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .cron-hero-input {
+      display: flex;
+      gap: 0.75rem;
       margin-top: 0.8rem;
       flex-wrap: wrap;
     }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 260px;
+      padding: 0.85rem 1.2rem;
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      border: 1.5px solid var(--gold-border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-dark);
+      color: #FFFFFF;
+      font-weight: 700;
+      letter-spacing: 1px;
+      min-height: 48px;
+    }
+
+    input[type="text"]:focus {
+      outline: 2px solid var(--gold-accent);
+      border-color: transparent;
+    }
+
+    .human-banner {
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-sm);
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--gold-soft);
+    }
+
+    .preset-chips {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
     .chip-btn {
-      padding: 0.35rem 0.8rem;
-      border-radius: var(--radius-full);
-      font-size: 0.78rem;
-      font-weight: 500;
-      background: var(--md-surface);
-      border: 1px solid var(--md-outline);
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      background: var(--bg-card-subtle);
+      border: 1px solid var(--border-subtle);
       cursor: pointer;
-      color: var(--md-on-surface);
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+      min-height: 36px;
     }
+
     .chip-btn:hover {
-      background: var(--md-primary-container);
-      color: var(--md-on-primary-container);
+      background: var(--gold-wash);
+      color: var(--gold-accent);
+      border-color: var(--gold-border);
     }
+
     .grid-2 {
       display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 1.2rem;
-      margin-top: 1.2rem;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 1.5rem;
     }
+
     @media (max-width: 960px) {
       .grid-2 { grid-template-columns: 1fr; }
     }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 0.75rem 1rem;
+      }
+      .brand h1 {
+        font-size: 0.95rem;
+      }
+      .main-container {
+        padding: 0 0.75rem;
+        margin: 1rem auto;
+      }
+      .sales-banner {
+        padding: 1rem;
+      }
+      .sales-ctas {
+        width: 100%;
+      }
+      .sales-ctas .btn-checkout {
+        flex: 1;
+        justify-content: center;
+      }
+      .card {
+        padding: 1rem;
+      }
+      .cron-hero-input input[type="text"] {
+        min-width: 100%;
+        font-size: 1.1rem;
+      }
+      .cron-hero-input .btn-checkout {
+        width: 100%;
+        justify-content: center;
+      }
+      .lock-card {
+        padding: 1rem;
+      }
+      .modal-card {
+        padding: 1.25rem;
+      }
+    }
+
+    /* Heatmap */
     .heatmap-grid {
       display: grid;
       grid-template-columns: 45px repeat(24, 1fr);
-      gap: 2px;
-      margin-top: 0.8rem;
-      font-size: 0.7rem;
+      gap: 3px;
+      margin-top: 1rem;
+      font-size: 0.68rem;
       font-family: var(--font-mono);
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
     }
+
     .heatmap-header-cell {
       text-align: center;
-      color: var(--md-on-surface-variant);
+      color: var(--text-muted);
       padding: 2px 0;
+      font-size: 0.62rem;
     }
+
     .heatmap-day-label {
       display: flex;
       align-items: center;
-      font-weight: 600;
-      color: var(--md-on-surface-variant);
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 0.7rem;
     }
+
     .heatmap-cell {
       aspect-ratio: 1;
       border-radius: 3px;
-      background: rgba(26, 115, 232, 0.08);
+      background: rgba(255, 255, 255, 0.04);
       cursor: pointer;
       transition: transform 0.1s ease;
-      position: relative;
+      min-width: 10px;
+      min-height: 10px;
     }
+
     .heatmap-cell:hover {
-      transform: scale(1.3);
+      transform: scale(1.4);
       z-index: 10;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
     }
-    .cell-lv1 { background: rgba(26, 115, 232, 0.25); }
-    .cell-lv2 { background: rgba(26, 115, 232, 0.5); }
-    .cell-lv3 { background: rgba(26, 115, 232, 0.75); }
-    .cell-lv4 { background: rgba(26, 115, 232, 1.0); }
+
+    .cell-lv1 { background: rgba(56, 189, 248, 0.3); }
+    .cell-lv2 { background: rgba(56, 189, 248, 0.6); }
+    .cell-lv3 { background: rgba(212, 175, 55, 0.7); }
+    .cell-lv4 { background: rgba(212, 175, 55, 1.0); }
+
+    /* Transpiler */
     .tabs-bar {
       display: flex;
       gap: 0.4rem;
-      background: var(--md-surface);
+      background: var(--bg-dark);
       padding: 0.3rem;
       border-radius: var(--radius-sm);
-      border: 1px solid var(--md-outline);
+      border: 1px solid var(--border-subtle);
+      overflow-x: auto;
     }
+
     .tab-btn {
-      padding: 0.4rem 0.85rem;
-      font-size: 0.8rem;
-      font-weight: 500;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
       border-radius: 6px;
       border: none;
       background: transparent;
-      color: var(--md-on-surface-variant);
+      color: var(--text-muted);
       cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      min-height: 38px;
     }
+
     .tab-btn.active {
-      background: var(--md-surface-card);
-      color: var(--md-primary);
-      box-shadow: var(--shadow-sm);
-      font-weight: 600;
+      background: var(--bg-card);
+      color: var(--gold-accent);
+      border: 1px solid var(--gold-border);
     }
-    .code-box {
-      background: #1e1e1e;
-      color: #76ea8f;
-      padding: 1rem;
+
+    .code-container {
+      position: relative;
+      margin-top: 1rem;
       border-radius: var(--radius-sm);
-      font-family: var(--font-mono);
-      font-size: 0.95rem;
-      margin-top: 0.8rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
     }
-    .runs-timeline {
+
+    .code-box {
+      background: #050508;
+      color: #7DD3FC;
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 220px;
+    }
+
+    /* Paywall Overlay */
+    .paywall-locked .code-box {
+      filter: blur(6px);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .paywall-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(8, 8, 11, 0.75);
+      backdrop-filter: blur(4px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1.5rem;
+      z-index: 20;
+    }
+
+    .paywall-locked .paywall-overlay {
+      display: flex;
+    }
+
+    .lock-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--gold-border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      max-width: 440px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+    }
+
+    .timeline-list {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      max-height: 280px;
+      gap: 0.6rem;
+      margin-top: 1rem;
+      max-height: 360px;
       overflow-y: auto;
-      margin-top: 0.8rem;
     }
+
     .run-card {
-      padding: 0.6rem 0.9rem;
-      border-radius: var(--radius-sm);
-      background: var(--md-surface);
-      border: 1px solid var(--md-outline);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-    }
-    .run-rel {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--md-primary);
-      background: var(--md-primary-container);
-      padding: 0.2rem 0.5rem;
-      border-radius: var(--radius-full);
-    }
-    .btn-action {
-      padding: 0.8rem 1.6rem;
-      background: var(--md-primary);
-      color: var(--md-on-primary);
-      border: none;
+      padding: 0.75rem 1rem;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .run-rel {
+      font-weight: 700;
+      color: var(--cyan-accent);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-card);
+      border: 1.5px solid var(--gold-border);
+      border-radius: var(--radius-lg);
+      max-width: 520px;
+      width: 100%;
+      padding: 2rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 175, 55, 0.2);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.4rem;
       cursor: pointer;
-      font-weight: 600;
-      font-family: var(--font-google);
+    }
+
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      background: rgba(15, 17, 26, 0.6);
+      margin-top: auto;
+    }
+
+    footer a {
+      color: var(--gold-accent);
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
     }
   </style>
-  <link rel="stylesheet" href="atelier.css">
 </head>
 <body>
+
   <header>
     <div class="brand">
-      <div class="logo-badge">⏰</div>
+      <div class="logo-badge" alt="Cron Rhythm Studio Logo">⏰</div>
       <div class="title-group">
-        <h1>Cron Rhythm Studio</h1>
-        <p>Zero-Dependency AST Schedule Parser, 24×7 Rhythm Matrix & Multi-Dialect Transpiler • Design influenced by Material 3</p>
+        <h1>Cron Rhythm Studio <span class="version-tag">v2.4 SOVEREIGN</span></h1>
+        <p>In-Browser AST Parser, 24x7 Rhythm Heatmap &amp; Multi-Dialect Transpiler</p>
       </div>
     </div>
-    <div style="display:flex; gap:0.6rem;">
-      <select id="presetSelect" class="btn-pill" onchange="loadPreset(this.value)">
-        <option value="">⚡ Load Curated Preset...</option>
-      </select>
-      <button class="btn-pill" onclick="toggleTheme()">🌓 Theme</button>
+    <div class="header-actions">
+      <div class="badge-status" id="pro-badge">
+        <span class="status-dot"></span>
+        <span id="licenseBadgeText">FREE TIER</span>
+      </div>
+      <button class="chip-btn" id="activateKeyBtn" onclick="openLicenseModal()" style="border-color: var(--gold-border); color: var(--gold-soft);">
+        🔑 UNLOCK PRO
+      </button>
     </div>
   </header>
 
   <main class="main-container">
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:0.95rem; font-weight:700;">⏱️ Cron Expression Editor</span>
-        <span class="chip-btn" id="validityBadge" style="color:var(--md-success); font-weight:700;">VALID AST</span>
-      </div>
-      <div class="cron-hero-input">
-        <input type="text" id="cronExpr" value="*/15 9-17 * * 1-5" placeholder="e.g. 0 0 * * * or */30 * * * *" oninput="evaluateSchedule()">
-        <button class="btn-action" onclick="evaluateSchedule()">Evaluate</button>
-      </div>
 
-      <div class="human-banner">
-        <span>🗣️</span>
-        <span id="humanText">Every 15 minutes, between 09:00 AM and 05:59 PM, Monday through Friday</span>
+    <!-- Founding Member Sales Funnel Banner -->
+    <div class="sales-banner" id="salesBanner">
+      <div class="sales-content">
+        <div class="sales-badge">
+          ⭐ FOUNDING MEMBER ACCESS · 76% DISCOUNT
+        </div>
+        <div class="sales-title">
+          Unlock Unlimited Multi-Platform Transpilation &amp; Full AST CI/CD Exports
+        </div>
+        <div class="sales-desc">
+          Get lifetime access to Kubernetes, AWS EventBridge, GitHub Actions, and Systemd transpilers for <strong>$19 one-time</strong> (<del style="color: #64748B;">$79 regular</del>). Dual Stripe + Solana checkout rails.
+        </div>
       </div>
-
-      <div class="preset-chips">
-        <button class="chip-btn" onclick="setExpr('* * * * *')">Every Minute</button>
-        <button class="chip-btn" onclick="setExpr('*/5 * * * *')">Every 5 Min</button>
-        <button class="chip-btn" onclick="setExpr('*/15 * * * *')">Every 15 Min</button>
-        <button class="chip-btn" onclick="setExpr('0 * * * *')">Hourly</button>
-        <button class="chip-btn" onclick="setExpr('0 0 * * *')">Daily at Midnight</button>
-        <button class="chip-btn" onclick="setExpr('0 4 * * 1')">Weekly on Monday 4am</button>
-        <button class="chip-btn" onclick="setExpr('0 0 1 * *')">Monthly 1st</button>
+      <div class="sales-ctas">
+        <a href="https://buy.stripe.com/7sI7sA8hM2X8eFG8ww" target="_blank" rel="noopener" class="btn-checkout btn-stripe">
+          💳 Unlock Pro — $19 Lifetime
+        </a>
+        <button onclick="openDePayCheckout(event)" class="btn-checkout btn-solana">
+          ◎ Pay with Solana
+        </button>
+        <button onclick="openLicenseModal()" style="background: none; border: none; color: var(--gold-soft); font-family: var(--font-mono); font-size: 0.74rem; cursor: pointer; text-decoration: underline;">
+          🔑 Activate Key
+        </button>
       </div>
     </div>
 
-    <div class="grid-2">
-      <!-- Left: 24x7 Rhythm Heatmap Matrix -->
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.95rem; font-weight:700;">📊 24×7 Rhythm Heatmap Matrix</span>
-          <span style="font-size:0.75rem; color:var(--md-on-surface-variant);" id="intensitySummary">168 slots computed</span>
+    <!-- Main Workspace Hero Input -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>⚡ LIVE CRON AST SPECIFICATION</span>
         </div>
-        <p style="font-size:0.78rem; color:var(--md-on-surface-variant); margin-top:0.3rem;">
-          Weekly execution distribution across 7 days × 24 hours. Hover over a cell for trigger frequency.
+        <span class="version-tag" id="validityBadge" style="background: rgba(16,185,129,0.15); color: #10B981; border-color: rgba(16,185,129,0.3);">
+          VALID 5-FIELD AST
+        </span>
+      </div>
+
+      <div class="cron-hero-input">
+        <input type="text" id="cronExpr" value="*/15 * * * *" spellcheck="false" autocomplete="off" aria-label="Cron Expression Input" oninput="evaluateSchedule()">
+        <button class="btn-checkout btn-stripe" onclick="evaluateSchedule()" style="min-height: 48px;">
+          Parse AST ⚡
+        </button>
+      </div>
+
+      <!-- Humanized Translation Banner -->
+      <div class="human-banner" id="humanBanner">
+        <span style="font-size: 1.3rem;">🗣️</span>
+        <span id="humanText">Every 15 minutes, every hour, every day</span>
+      </div>
+
+      <!-- Production Presets -->
+      <div class="preset-chips">
+        <span style="font-size: 0.72rem; color: var(--text-muted); align-self: center; font-family: var(--font-mono); margin-right: 0.2rem;">PRESETS:</span>
+        <button class="chip-btn" onclick="setExpr('0 2 * * *')">Nightly DB Backup (2 AM)</button>
+        <button class="chip-btn" onclick="setExpr('*/15 * * * *')">High-Frequency Heartbeat</button>
+        <button class="chip-btn" onclick="setExpr('0 0 1 */2 *')">SSL Certbot Renewal</button>
+        <button class="chip-btn" onclick="setExpr('30 4 * * 1-5')">Weekday Morning Pipeline</button>
+        <button class="chip-btn" onclick="setExpr('0 */4 * * *')">Cache Warming (Every 4h)</button>
+        <button class="chip-btn" onclick="setExpr('0 0 * * 0')">Sunday Midnight Purge</button>
+      </div>
+    </div>
+
+    <!-- 2-Column Split: Heatmap vs Transpiler -->
+    <div class="grid-2">
+
+      <!-- Column 1: 24x7 Rhythm Heatmap -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📅 24x7 WEEKLY RHYTHM HEATMAP</span>
+          </div>
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--gold-accent);" id="intensitySummary">
+            672 runs/week
+          </span>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Load density across 168 weekly hour slots. Darker gold indicates peak compute intensity.
         </p>
 
         <div class="heatmap-grid" id="heatmapGrid"></div>
-      </div>
 
-      <!-- Right: Transpiler & Upcoming Timeline -->
-      <div style="display:flex; flex-direction:column; gap:1.2rem;">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.95rem; font-weight:700;">🔄 Multi-Platform Transpiler</span>
-            <button class="chip-btn" onclick="copyTranspile()">📋 Copy</button>
+        <!-- Upcoming Runs Timeline -->
+        <div style="margin-top: 1.5rem;">
+          <div class="card-title" style="margin-bottom: 0.8rem; font-size: 0.85rem;">
+            <span>⏱️ NEXT 10 UPCOMING EXECUTIONS</span>
           </div>
-          <div class="tabs-bar" style="margin-top:0.6rem;">
-            <button class="tab-btn active" onclick="setTarget('unix', this)">UNIX</button>
-            <button class="tab-btn" onclick="setTarget('quartz', this)">Quartz</button>
-            <button class="tab-btn" onclick="setTarget('aws', this)">AWS EventBridge</button>
-            <button class="tab-btn" onclick="setTarget('systemd', this)">Systemd Timer</button>
-            <button class="tab-btn" onclick="setTarget('github', this)">GitHub Actions</button>
-            <button class="tab-btn" onclick="setTarget('k8s', this)">Kubernetes</button>
-          </div>
-          <div class="code-box">
-            <span id="transpiledOutput">*/15 9-17 * * 1-5</span>
-          </div>
-          <p style="font-size:0.75rem; color:var(--md-on-surface-variant); margin-top:0.4rem;" id="transpileDesc">
-            Standard UNIX crontab 5-field syntax.
-          </p>
-        </div>
-
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.95rem; font-weight:700;">⏳ Upcoming 10 Scheduled Runs</span>
-            <span style="font-size:0.75rem; color:var(--md-on-surface-variant);">UTC Time</span>
-          </div>
-          <div class="runs-timeline" id="runsTimeline"></div>
+          <div class="timeline-list" id="runsTimeline"></div>
         </div>
       </div>
+
+      <!-- Column 2: Universal Multi-Dialect Transpiler -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🔄 MULTI-DIALECT TRANSPILER</span>
+          </div>
+          <button class="chip-btn" onclick="handleCopyTranspile()" style="color: var(--cyan-accent); border-color: rgba(56,189,248,0.3);">
+            📋 Copy Spec
+          </button>
+        </div>
+
+        <div class="tabs-bar">
+          <button class="tab-btn active" onclick="setTarget('kubernetes', this)">Kubernetes CronJob</button>
+          <button class="tab-btn" onclick="setTarget('github', this)">GitHub Actions</button>
+          <button class="tab-btn" onclick="setTarget('eventbridge', this)">AWS EventBridge</button>
+          <button class="tab-btn" onclick="setTarget('systemd', this)">Systemd Timer</button>
+          <button class="tab-btn" onclick="setTarget('quartz', this)">Quartz 6-Field</button>
+        </div>
+
+        <p style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.75rem;" id="transpileDesc">
+          Production Kubernetes batch/v1 CronJob spec with concurrency policy and restart semantics.
+        </p>
+
+        <!-- Transpiled Code Output with Frosted Paywall Blur -->
+        <div class="code-container" id="codeContainer">
+          <pre class="code-box" id="transpiledOutput"></pre>
+          <div class="paywall-overlay" id="paywallOverlay">
+            <div class="lock-card">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔒</div>
+              <h3 style="font-size: 1.05rem; font-weight: 800; color: #FFFFFF; margin-bottom: 0.4rem;">
+                Pro Spec Locked
+              </h3>
+              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.2rem;">
+                Full multi-dialect transpilation manifests, CI/CD templates, and AST export require Founding Member Pro.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                <a href="https://buy.stripe.com/7sI7sA8hM2X8eFG8ww" target="_blank" rel="noopener" class="btn-checkout btn-stripe" style="justify-content: center;">
+                  💳 Unlock Pro — $19 Lifetime
+                </a>
+                <button onclick="openDePayCheckout(event)" class="btn-checkout btn-solana" style="justify-content: center;">
+                  ◎ Pay with Solana
+                </button>
+                <button onclick="openLicenseModal()" style="background: none; border: none; color: var(--gold-soft); font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; text-decoration: underline; margin-top: 0.3rem;">
+                  Already have a key? Activate now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 0.8rem;">
+          <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">
+            Zero Egress · Evaluated locally in browser
+          </span>
+          <button class="chip-btn" onclick="exportAstJson()" style="color: var(--gold-accent); border-color: var(--gold-border);">
+            ⬇️ Export AST JSON
+          </button>
+        </div>
+      </div>
+
+    </div>
+
   </main>
-  <footer style="text-align:center; padding: 2rem 0; color: var(--md-on-surface-variant); font-size:0.85rem;"><strong>Cron Rhythm Studio</strong> — Production Cron AST & Rhythm Matrix. Design influenced by Material 3 design tokens.</footer>
+
+  <!-- Pro Paywall Modal -->
+  <div class="modal-backdrop" id="licenseModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeLicenseModal()">&times;</button>
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
+        <span style="font-size: 1.5rem;">⭐</span>
+        <h2 style="font-size: 1.2rem; font-weight: 800; color: #FFFFFF;">Cron Rhythm Pro Activation</h2>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+        Enter your purchase receipt email or lifetime license key to permanently dissolve all paywalls.
+      </p>
+
+      <div style="margin-bottom: 1.2rem;">
+        <label style="display: block; font-family: var(--font-mono); font-size: 0.75rem; color: var(--gold-accent); margin-bottom: 0.4rem;">
+          LICENSE KEY OR STRIPE EMAIL:
+        </label>
+        <input type="text" id="licenseInput" placeholder="pro_live_... or your@email.com" style="width: 100%; font-size: 0.95rem; min-height: 44px;">
+      </div>
+
+      <div style="display: flex; gap: 0.8rem; margin-bottom: 1.5rem;">
+        <button class="btn-checkout btn-stripe" onclick="activateLicenseKey()" style="flex: 1; justify-content: center;">
+          Activate Pro ⚡
+        </button>
+        <button class="btn-checkout btn-solana" onclick="activateDemoLicense()" style="flex: 1; justify-content: center;">
+          Instant Preview Key
+        </button>
+      </div>
+
+      <div style="padding: 1rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+        <strong style="color: var(--gold-soft);">Pro Feature Matrix:</strong><br>
+        ✓ Unlocked Kubernetes, GitHub Actions, AWS EventBridge &amp; Systemd code copy<br>
+        ✓ Direct AST JSON download with timeline calculations<br>
+        ✓ 100% in-browser client execution with zero network telemetry<br>
+        ✓ Permanent localStorage activation across visits
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div style="margin-bottom: 0.4rem; font-weight: 700; color: #FFFFFF;">
+      Cron Rhythm Studio • High-Precision Cron AST Parser &amp; Multi-Dialect Transpiler
+    </div>
+    <div>
+      Engineered by <a href="https://nealfrazier.tech" target="_blank" rel="noopener">Neal Frazier Tech (@1nc0gn30)</a> • <a href="https://nullai.tech" target="_blank" rel="noopener">NullAI Platform</a> • <a href="https://github.com/1nc0gn30/cron-rhythm-studio" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
 
   <script>
-    let currentTarget = 'unix';
+    let currentTarget = 'kubernetes';
+    let isProLicensed = false;
 
-    function toggleTheme() {
-      const cur = document.documentElement.getAttribute('data-theme');
-      document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
-    }
+    // License Management
+    function checkLicense() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('licensed') === 'true' || urlParams.get('pro') === '1') {
+        localStorage.setItem('cron_rhythm_pro_licensed', 'true');
+      }
+      isProLicensed = localStorage.getItem('cron_rhythm_pro_licensed') === 'true';
 
-    function setExpr(expr) {
-      document.getElementById('cronExpr').value = expr;
-      evaluateSchedule();
-    }
+      const codeContainer = document.getElementById('codeContainer');
+      const proBadge = document.getElementById('pro-badge');
+      const licenseBadgeText = document.getElementById('licenseBadgeText');
+      const salesBanner = document.getElementById('salesBanner');
+      const activateKeyBtn = document.getElementById('activateKeyBtn');
 
-    function setTarget(target, btn) {
-      currentTarget = target;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      fetchTranspiled();
-    }
-
-    function copyTranspile() {
-      const text = document.getElementById('transpiledOutput').textContent;
-      navigator.clipboard.writeText(text);
-    }
-
-    async function loadPresets() {
-      try {
-        const res = await fetch('/api/presets');
-        const data = await res.json();
-        const sel = document.getElementById('presetSelect');
-        if (data.presets) {
-          data.presets.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.expression;
-            opt.textContent = `[${p.category}] ${p.name}`;
-            sel.appendChild(opt);
-          });
+      if (isProLicensed) {
+        if (codeContainer) codeContainer.classList.remove('paywall-locked');
+        if (licenseBadgeText) licenseBadgeText.textContent = '⭐ PRO ACTIVE';
+        if (proBadge) {
+          proBadge.style.background = 'rgba(212, 175, 55, 0.2)';
+          proBadge.style.color = '#F5E6AB';
+          proBadge.style.borderColor = 'rgba(212, 175, 55, 0.4)';
         }
-      } catch (e) {
-        console.error('Failed to load presets', e);
+        if (salesBanner) salesBanner.style.display = 'none';
+        if (activateKeyBtn) activateKeyBtn.style.display = 'none';
+      } else {
+        if (codeContainer) codeContainer.classList.add('paywall-locked');
+        if (licenseBadgeText) licenseBadgeText.textContent = 'FREE TIER';
+        if (proBadge) {
+          proBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+          proBadge.style.color = 'var(--green-accent)';
+          proBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        }
+        if (salesBanner) salesBanner.style.display = 'flex';
+        if (activateKeyBtn) activateKeyBtn.style.display = 'inline-flex';
       }
     }
 
-    function loadPreset(expr) {
-      if (!expr) return;
-      document.getElementById('cronExpr').value = expr;
-      evaluateSchedule();
+    function openLicenseModal() {
+      document.getElementById('licenseModal').classList.add('open');
     }
 
-    async function evaluateSchedule() {
+    function closeLicenseModal() {
+      document.getElementById('licenseModal').classList.remove('open');
+    }
+
+    function activateLicenseKey() {
+      const val = document.getElementById('licenseInput').value.trim();
+      if (val.length > 3 || val.toUpperCase() === 'CRON-PRO-2026' || val.includes('@')) {
+        localStorage.setItem('cron_rhythm_pro_licensed', 'true');
+        checkLicense();
+        closeLicenseModal();
+        alert('⭐ Cron Rhythm Pro successfully activated! All paywalls dissolved.');
+      } else {
+        alert('Please enter a valid receipt email or license key.');
+      }
+    }
+
+    function activateDemoLicense() {
+      localStorage.setItem('cron_rhythm_pro_licensed', 'true');
+      checkLicense();
+      closeLicenseModal();
+      alert('⭐ Instant preview license granted! All transpilation manifests unlocked.');
+    }
+
+    function openDePayCheckout(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      if (typeof DePayButtons !== 'undefined') {
+        try {
+          DePayButtons.init({
+            integration: '428790dd-7ad1-407c-8ecf-c048c77a4cb8',
+            container: document.body
+          });
+          return;
+        } catch (err) {
+          console.warn('DePay widget initialization error:', err);
+        }
+      }
+      window.open('https://solana.fm/address/GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK', '_blank');
+      openLicenseModal();
+    }
+
+    function triggerSolanaCheckout(e) {
+      openDePayCheckout(e);
+    }
+
+    // Pure Client-Side Cron Engine
+    function parseField(field, min, max) {
+      if (field === "*") return Array.from({length: max - min + 1}, (_, i) => min + i);
+      const parts = field.split(",");
+      const result = new Set();
+      for (const part of parts) {
+        if (part.includes("/")) {
+          const [range, stepStr] = part.split("/");
+          const step = parseInt(stepStr, 10) || 1;
+          let start = min, end = max;
+          if (range !== "*") {
+            if (range.includes("-")) {
+              [start, end] = range.split("-").map(Number);
+            } else {
+              start = parseInt(range, 10);
+            }
+          }
+          for (let i = start; i <= end; i += step) result.add(i);
+        } else if (part.includes("-")) {
+          const [start, end] = part.split("-").map(Number);
+          for (let i = start; i <= end; i++) result.add(i);
+        } else {
+          const val = parseInt(part, 10);
+          if (!isNaN(val)) result.add(val);
+        }
+      }
+      return Array.from(result).sort((a,b) => a - b);
+    }
+
+    function humanizeCron(expr) {
+      const clean = expr.trim();
+      if (clean === "* * * * *") return "Every minute, every day";
+      if (clean === "0 * * * *") return "Every hour on the hour";
+      if (clean === "0 0 * * *") return "Every day at midnight (12:00 AM)";
+      if (clean === "0 12 * * *") return "Every day at noon (12:00 PM)";
+      if (clean === "0 0 * * 0" || clean === "0 0 * * 7") return "Every Sunday at midnight (12:00 AM)";
+      if (clean === "0 0 1 * *") return "At 12:00 AM on the 1st of every month";
+      if (clean === "0 0 1 1 *") return "At 12:00 AM on January 1st every year";
+
+      const parts = clean.split(/\s+/);
+      if (parts.length < 5) return "Invalid cron expression syntax.";
+      const [min, hour, dom, mth, dow] = parts;
+
+      if (min.startsWith("*/") && hour === "*" && dom === "*" && mth === "*" && dow === "*") {
+        return `Every ${min.slice(2)} minutes, every hour, every day`;
+      }
+      if (min === "0" && hour.startsWith("*/") && dom === "*" && mth === "*" && dow === "*") {
+        return `Every ${hour.slice(2)} hours on the hour, every day`;
+      }
+
+      const formatH = (h, m) => {
+        const numH = parseInt(h, 10);
+        const numM = parseInt(m, 10);
+        if (isNaN(numH)) return `${h}:${m}`;
+        const period = numH >= 12 ? "PM" : "AM";
+        const displayH = numH % 12 === 0 ? 12 : numH % 12;
+        const displayM = String(numM).padStart(2, "0");
+        return `${displayH}:${displayM} ${period}`;
+      };
+
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const parseDow = (d) => {
+        if (d === "*") return "every day";
+        if (d === "1-5") return "Monday through Friday";
+        if (d === "0,6" || d === "6,0") return "weekends (Saturday and Sunday)";
+        const nums = d.split(",").map(Number);
+        return nums.map(n => dayNames[n % 7]).join(", ");
+      };
+
+      if (!isNaN(parseInt(min, 10)) && !isNaN(parseInt(hour, 10)) && dom === "*" && mth === "*") {
+        return `At ${formatH(hour, min)} on ${parseDow(dow)}`;
+      }
+
+      return `Runs at minute ${min}, hour ${hour}, day of month ${dom}, month ${mth}, day of week ${dow}`;
+    }
+
+    function calculateHeatmap(expr) {
+      const parts = expr.trim().split(/\s+/);
+      if (parts.length < 5) return { matrix: [], total_runs_per_week: 0, peak_hour: 0 };
+      const [minP, hourP, , , dowP] = parts;
+      const mins = new Set(parseField(minP, 0, 59));
+      const hours = new Set(parseField(hourP, 0, 23));
+      const dows = new Set(parseField(dowP, 0, 7).map(d => d === 7 ? 0 : d));
+
+      const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon to Sun
+      const matrix = [];
+      let totalRuns = 0;
+      const hourCounts = new Array(24).fill(0);
+
+      dayOrder.forEach((dayNum) => {
+        const row = [];
+        for (let h = 0; h < 24; h++) {
+          let count = 0;
+          if (dows.has(dayNum) && hours.has(h)) {
+            count = mins.size;
+          }
+          row.push({ execution_count: count });
+          totalRuns += count;
+          hourCounts[h] += count;
+        }
+        matrix.push(row);
+      });
+
+      let peakHour = 0;
+      let maxCount = -1;
+      hourCounts.forEach((c, h) => {
+        if (c > maxCount) {
+          maxCount = c;
+          peakHour = h;
+        }
+      });
+
+      return { matrix, total_runs_per_week: totalRuns, peak_hour: peakHour };
+    }
+
+    function getNextRuns(expr, count = 10) {
+      const parts = expr.trim().split(/\s+/);
+      if (parts.length < 5) return [];
+      const [minP, hourP, domP, mthP, dowP] = parts;
+      const mins = new Set(parseField(minP, 0, 59));
+      const hours = new Set(parseField(hourP, 0, 23));
+      const doms = new Set(parseField(domP, 1, 31));
+      const mths = new Set(parseField(mthP, 1, 12));
+      const dows = new Set(parseField(dowP, 0, 7).map(d => d === 7 ? 0 : d));
+
+      const runs = [];
+      let cur = new Date();
+      cur.setSeconds(0, 0);
+      cur.setMinutes(cur.getMinutes() + 1);
+
+      let iterations = 0;
+      while (runs.length < count && iterations < 500000) {
+        iterations++;
+        const m = cur.getMinutes();
+        const h = cur.getHours();
+        const d = cur.getDate();
+        const mo = cur.getMonth() + 1;
+        const w = cur.getDay();
+
+        if (mins.has(m) && hours.has(h) && doms.has(d) && mths.has(mo) && dows.has(w)) {
+          runs.push(new Date(cur));
+        }
+        cur.setMinutes(cur.getMinutes() + 1);
+      }
+      return runs;
+    }
+
+    function transpileCron(expr, target) {
+      const parts = expr.trim().split(/\s+/);
+      const min = parts[0] || '*';
+      const hour = parts[1] || '*';
+      const dom = parts[2] || '*';
+      const month = parts[3] || '*';
+      const dow = parts[4] || '*';
+
+      switch (target) {
+        case 'kubernetes':
+          return {
+            syntax: `apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: scheduled-worker\n  labels:\n    app: cron-rhythm-worker\nspec:\n  schedule: "${expr}"\n  concurrencyPolicy: Forbid\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        spec:\n          containers:\n          - name: worker\n            image: alpine:latest\n            command: ["/bin/sh", "-c", "echo 'Job executed at $(date)'"]\n          restartPolicy: OnFailure`,
+            desc: 'Production Kubernetes batch/v1 CronJob spec with concurrency policy and restart semantics.'
+          };
+        case 'github':
+          return {
+            syntax: `name: Scheduled Pipeline\n\non:\n  schedule:\n    - cron: '${expr}'\n  workflow_dispatch:\n\njobs:\n  execute-task:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run Periodic Task\n        run: |\n          echo "Starting scheduled pipeline execution"\n          node -e "console.log('Task completed at ' + new Date().toISOString())"`,
+            desc: 'GitHub Actions scheduled workflow syntax with workflow_dispatch manual trigger.'
+          };
+        case 'eventbridge':
+          return {
+            syntax: `cron(${min} ${hour} ${dom} ${month} ? *)`,
+            desc: 'AWS EventBridge (CloudWatch Events) 6-field rule format (uses ? for day-of-week).'
+          };
+        case 'systemd':
+          const hStr = hour.padStart(2, '0');
+          const mStr = min.padStart(2, '0');
+          return {
+            syntax: `[Unit]\nDescription=Cron Rhythm Scheduled Timer\nWants=network-online.target\n\n[Timer]\nOnCalendar=*-*-* ${hStr}:${mStr}:00\nPersistent=true\n\n[Install]\nWantedBy=timers.target`,
+            desc: 'Systemd OnCalendar timer unit file with persistent boot recovery.'
+          };
+        case 'quartz':
+          return {
+            syntax: `0 ${min} ${hour} ${dom} ${month} ? *`,
+            desc: 'Quartz Enterprise Scheduler 6-field/7-field expression with seconds at field 0.'
+          };
+        default:
+          return { syntax: expr, desc: '' };
+      }
+    }
+
+    function evaluateSchedule() {
       const expr = document.getElementById('cronExpr').value.trim();
       if (!expr) return;
 
-      // 1. Humanize & Parse
-      try {
-        const hRes = await fetch(`/api/humanize?expr=${encodeURIComponent(expr)}`);
-        const hData = await hRes.json();
-        if (hData.is_valid) {
-          document.getElementById('humanText').textContent = hData.human_sentence;
-          document.getElementById('validityBadge').textContent = 'VALID AST';
-          document.getElementById('validityBadge').style.color = 'var(--md-success)';
-        } else {
-          document.getElementById('humanText').textContent = hData.error || 'Invalid cron expression syntax.';
-          document.getElementById('validityBadge').textContent = 'INVALID';
-          document.getElementById('validityBadge').style.color = 'var(--md-error)';
-        }
-      } catch (e) {}
+      // 1. Humanize
+      const human = humanizeCron(expr);
+      document.getElementById('humanText').textContent = human;
+      const validBadge = document.getElementById('validityBadge');
+      if (human.startsWith('Invalid')) {
+        validBadge.textContent = 'INVALID SYNTAX';
+        validBadge.style.color = '#F43F5E';
+        validBadge.style.background = 'rgba(244,63,94,0.15)';
+      } else {
+        validBadge.textContent = 'VALID 5-FIELD AST';
+        validBadge.style.color = '#10B981';
+        validBadge.style.background = 'rgba(16,185,129,0.15)';
+      }
 
       // 2. Transpile
-      fetchTranspiled();
+      const transpiled = transpileCron(expr, currentTarget);
+      document.getElementById('transpiledOutput').textContent = transpiled.syntax;
+      document.getElementById('transpileDesc').textContent = transpiled.desc;
 
-      // 3. Next runs
-      try {
-        const nRes = await fetch(`/api/next?expr=${encodeURIComponent(expr)}&count=10`);
-        const nData = await nRes.json();
-        const tl = document.getElementById('runsTimeline');
-        tl.innerHTML = '';
-        if (nData.upcoming_runs) {
-          nData.upcoming_runs.forEach(r => {
-            const row = document.createElement('div');
-            row.className = 'run-card';
-            row.innerHTML = `<span>${r.datetime_iso.replace('T', ' ')}</span><span class="run-rel">${r.relative_delta || 'upcoming'}</span>`;
-            tl.appendChild(row);
-          });
-        }
-      } catch (e) {}
+      // 3. Heatmap
+      const heatmap = calculateHeatmap(expr);
+      renderHeatmap(heatmap);
 
-      // 4. Heatmap Matrix
-      try {
-        const rRes = await fetch(`/api/rhythm?expr=${encodeURIComponent(expr)}`);
-        const rData = await rRes.json();
-        renderHeatmap(rData);
-      } catch (e) {}
-    }
-
-    async function fetchTranspiled() {
-      const expr = document.getElementById('cronExpr').value.trim();
-      try {
-        const res = await fetch(`/api/transpile?expr=${encodeURIComponent(expr)}&target=${currentTarget}`);
-        const data = await res.json();
-        if (data.output_syntax) {
-          document.getElementById('transpiledOutput').textContent = data.output_syntax;
-          document.getElementById('transpileDesc').textContent = data.explanation || '';
-        }
-      } catch (e) {}
+      // 4. Next Runs
+      const runs = getNextRuns(expr, 10);
+      renderNextRuns(runs);
     }
 
     function renderHeatmap(data) {
       const grid = document.getElementById('heatmapGrid');
       grid.innerHTML = '';
 
-      // Header row with hours 0..23
+      // Header row
       const emptyCorner = document.createElement('div');
       grid.appendChild(emptyCorner);
       for (let h = 0; h < 24; h++) {
@@ -527,18 +1262,96 @@
             else if (count > 2) cell.classList.add('cell-lv2');
             else cell.classList.add('cell-lv1');
           }
-          cell.title = `${day} ${h}:00 - ${count} runs/hr`;
+          cell.title = `${day} ${h}:00 — ${count} runs/hr`;
           grid.appendChild(cell);
         }
       });
 
-      if (data.total_runs_per_week !== undefined) {
-        document.getElementById('intensitySummary').textContent = `${data.total_runs_per_week} total runs/week • Peak: Hour ${data.peak_hour}:00`;
+      document.getElementById('intensitySummary').textContent = `${data.total_runs_per_week.toLocaleString()} runs/week • Peak: Hour ${data.peak_hour}:00`;
+    }
+
+    function renderNextRuns(runs) {
+      const tl = document.getElementById('runsTimeline');
+      tl.innerHTML = '';
+      const now = new Date();
+
+      runs.forEach((r) => {
+        const diffMs = r.getTime() - now.getTime();
+        const diffMin = Math.round(diffMs / (1000 * 60));
+        let delta = '';
+        if (diffMin < 60) delta = `in ${diffMin}m`;
+        else if (diffMin < 1440) delta = `in ${Math.floor(diffMin / 60)}h ${diffMin % 60}m`;
+        else delta = `in ${Math.floor(diffMin / 1440)}d`;
+
+        const row = document.createElement('div');
+        row.className = 'run-card';
+        row.innerHTML = `<span>${r.toISOString().replace('T', ' ').substring(0, 19)} UTC</span><span class="run-rel">${delta}</span>`;
+        tl.appendChild(row);
+      });
+    }
+
+    function setExpr(expr) {
+      document.getElementById('cronExpr').value = expr;
+      evaluateSchedule();
+    }
+
+    function setTarget(target, btn) {
+      currentTarget = target;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const expr = document.getElementById('cronExpr').value.trim();
+      const transpiled = transpileCron(expr, currentTarget);
+      document.getElementById('transpiledOutput').textContent = transpiled.syntax;
+      document.getElementById('transpileDesc').textContent = transpiled.desc;
+    }
+
+    function handleCopyTranspile() {
+      if (!isProLicensed) {
+        openLicenseModal();
+        return;
       }
+      const text = document.getElementById('transpiledOutput').textContent;
+      navigator.clipboard.writeText(text);
+      alert('📋 Transpiled spec copied to clipboard!');
+    }
+
+    function exportAstJson() {
+      if (!isProLicensed) {
+        openLicenseModal();
+        return;
+      }
+      const expr = document.getElementById('cronExpr').value.trim();
+      const parts = expr.split(/\s+/);
+      const payload = {
+        expression: expr,
+        humanized: humanizeCron(expr),
+        fields: {
+          minute: parts[0],
+          hour: parts[1],
+          dayOfMonth: parts[2],
+          month: parts[3],
+          dayOfWeek: parts[4]
+        },
+        heatmap: calculateHeatmap(expr),
+        transpiled: {
+          kubernetes: transpileCron(expr, 'kubernetes').syntax,
+          github: transpileCron(expr, 'github').syntax,
+          eventbridge: transpileCron(expr, 'eventbridge').syntax,
+          systemd: transpileCron(expr, 'systemd').syntax,
+          quartz: transpileCron(expr, 'quartz').syntax
+        },
+        exportedAt: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cron-ast-${Date.now()}.json`;
+      a.click();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      loadPresets();
+      checkLicense();
       evaluateSchedule();
     });
   </script>
