@@ -12,11 +12,18 @@
   <meta property="og:url" content="https://cronrhythm.nullai.tech">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://cronrhythm.nullai.tech/assets/banner.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Cron Rhythm Studio Sovereign AST Parser & Multi-Dialect Transpiler">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@1nc0gn30">
   <meta name="twitter:creator" content="@1nc0gn30">
   <meta name="twitter:image" content="https://cronrhythm.nullai.tech/assets/banner.png">
+  <meta name="twitter:image:alt" content="Cron Rhythm Studio Sovereign AST Parser & Multi-Dialect Transpiler">
   <link rel="canonical" href="https://cronrhythm.nullai.tech">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon.png">
 
   <!-- DePay Web3 Solana Payment Widget -->
   <script src="https://integrate.depay.com/widgets/v13.js" defer></script>
@@ -699,16 +706,16 @@
 
   <header>
     <div class="brand">
-      <div class="logo-badge" alt="Cron Rhythm Studio Logo">⏰</div>
+      <img src="/assets/icon.png" alt="Cron Rhythm Studio Logo" class="brand-icon" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; border: 1px solid var(--gold-border);">
       <div class="title-group">
-        <h1>Cron Rhythm Studio <span class="version-tag">v2.4 SOVEREIGN</span></h1>
+        <h1>Cron Rhythm Studio <span class="version-tag">v2.5 SOVEREIGN</span></h1>
         <p>In-Browser AST Parser, 24x7 Rhythm Heatmap &amp; Multi-Dialect Transpiler</p>
       </div>
     </div>
     <div class="header-actions">
-      <div class="badge-status" id="pro-badge">
+      <div class="badge-status" id="licenseBadge">
         <span class="status-dot"></span>
-        <span id="licenseBadgeText">FREE TIER</span>
+        <span id="licenseBadgeText">⚡ FREE TIER</span>
       </div>
       <button class="chip-btn" id="activateKeyBtn" onclick="openLicenseModal()" style="border-color: var(--gold-border); color: var(--gold-soft);">
         🔑 UNLOCK PRO
@@ -888,11 +895,11 @@
         <label style="display: block; font-family: var(--font-mono); font-size: 0.75rem; color: var(--gold-accent); margin-bottom: 0.4rem;">
           LICENSE KEY OR STRIPE EMAIL:
         </label>
-        <input type="text" id="licenseInput" placeholder="pro_live_... or your@email.com" style="width: 100%; font-size: 0.95rem; min-height: 44px;">
+        <input type="text" id="licenseInput" placeholder="CRON-PRO-2026 or receipt email" style="width: 100%; font-size: 0.95rem; min-height: 44px;">
       </div>
 
       <div style="display: flex; gap: 0.8rem; margin-bottom: 1.5rem;">
-        <button class="btn-checkout btn-stripe" onclick="activateLicenseKey()" style="flex: 1; justify-content: center;">
+        <button id="btnActivateKey" class="btn-checkout btn-stripe" onclick="activateLicenseKey()" style="flex: 1; justify-content: center;">
           Activate Pro ⚡
         </button>
         <button class="btn-checkout btn-solana" onclick="activateDemoLicense()" style="flex: 1; justify-content: center;">
@@ -928,11 +935,14 @@
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('licensed') === 'true' || urlParams.get('pro') === '1') {
         localStorage.setItem('cron_rhythm_pro_licensed', 'true');
+        localStorage.setItem('cron_rhythm_pro_key', 'true');
       }
-      isProLicensed = localStorage.getItem('cron_rhythm_pro_licensed') === 'true';
+      isProLicensed = localStorage.getItem('cron_rhythm_pro_licensed') === 'true' ||
+                      localStorage.getItem('cron_rhythm_pro_key') === 'true' ||
+                      localStorage.getItem('pro_licensed') === 'true';
 
       const codeContainer = document.getElementById('codeContainer');
-      const proBadge = document.getElementById('pro-badge');
+      const proBadge = document.getElementById('licenseBadge') || document.getElementById('pro-badge');
       const licenseBadgeText = document.getElementById('licenseBadgeText');
       const salesBanner = document.getElementById('salesBanner');
       const activateKeyBtn = document.getElementById('activateKeyBtn');
@@ -949,7 +959,7 @@
         if (activateKeyBtn) activateKeyBtn.style.display = 'none';
       } else {
         if (codeContainer) codeContainer.classList.add('paywall-locked');
-        if (licenseBadgeText) licenseBadgeText.textContent = 'FREE TIER';
+        if (licenseBadgeText) licenseBadgeText.textContent = '⚡ FREE TIER';
         if (proBadge) {
           proBadge.style.background = 'rgba(16, 185, 129, 0.15)';
           proBadge.style.color = 'var(--green-accent)';
@@ -968,10 +978,11 @@
       document.getElementById('licenseModal').classList.remove('open');
     }
 
-    function activateLicenseKey() {
-      const val = document.getElementById('licenseInput').value.trim();
+    function activateLicenseKey(providedKey) {
+      const val = (providedKey || (document.getElementById('licenseInput') ? document.getElementById('licenseInput').value : '')).trim();
       if (val.length > 3 || val.toUpperCase() === 'CRON-PRO-2026' || val.includes('@')) {
         localStorage.setItem('cron_rhythm_pro_licensed', 'true');
+        localStorage.setItem('cron_rhythm_pro_key', val);
         checkLicense();
         closeLicenseModal();
         alert('⭐ Cron Rhythm Pro successfully activated! All paywalls dissolved.');
@@ -982,6 +993,7 @@
 
     function activateDemoLicense() {
       localStorage.setItem('cron_rhythm_pro_licensed', 'true');
+      localStorage.setItem('cron_rhythm_pro_key', 'demo_preview');
       checkLicense();
       closeLicenseModal();
       alert('⭐ Instant preview license granted! All transpilation manifests unlocked.');
@@ -1323,6 +1335,8 @@
       const expr = document.getElementById('cronExpr').value.trim();
       const parts = expr.split(/\s+/);
       const payload = {
+        tool: "cron-rhythm-studio",
+        version: "2.5.0",
         expression: expr,
         humanized: humanizeCron(expr),
         fields: {
