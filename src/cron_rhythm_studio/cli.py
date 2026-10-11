@@ -59,6 +59,24 @@ __version__ = "0.1.0"
 # Terminal Color & Styling Utilities
 # ============================================================================
 
+def _is_local_origin(origin) -> bool:
+    """True for no Origin (CLI/curl/same-origin GET) or a localhost origin."""
+    if not origin:
+        return True
+    from urllib.parse import urlparse
+    try:
+        u = urlparse(origin)
+    except Exception:
+        return False
+    return u.scheme in ("http", "https") and (u.hostname or "") in ("localhost", "127.0.0.1", "::1")
+
+
+def _cors_origin(handler) -> str:
+    """Echo the Origin only when it is local; never '*'."""
+    origin = handler.headers.get("Origin", "")
+    return origin if origin and _is_local_origin(origin) else "http://127.0.0.1"
+
+
 class TerminalStyler:
     """Handles ANSI escape sequences with automatic disable on non-TTY / NO_COLOR."""
 
@@ -1299,7 +1317,7 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
                     content_type = "application/json"
                 self.send_response(200)
                 self.send_header("Content-Type", content_type)
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
                 self.end_headers()
                 self.wfile.write(candidate_file.read_bytes())
                 return
@@ -1458,6 +1476,12 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(b'{"error": "Endpoint not found"}')
 
     def do_POST(self) -> None:
+
+        if not _is_local_origin(self.headers.get("Origin")):
+
+            self.send_error(403, "Cross-origin request blocked")
+
+            return
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
 
@@ -1528,7 +1552,7 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
     def _send_json(self, data: Any, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
         self.end_headers()
         payload = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
         self.wfile.write(payload)
