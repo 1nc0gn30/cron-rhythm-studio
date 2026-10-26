@@ -1,3 +1,9 @@
+<div align="center">
+  <img src="assets/hero-banner.svg" alt="CronRhythm Studio — Sovereign Architecture Banner" width="100%" />
+</div>
+
+<br />
+
 # Cron Rhythm Studio ⏰✨
 
 > **High-Precision Cron AST Parser, 24×7 Weekly Rhythm Heatmap, Iterative Next-Run Countdown Engine, and Multi-Dialect Transpiler across Kubernetes, GitHub Actions, AWS EventBridge, and Systemd.**
