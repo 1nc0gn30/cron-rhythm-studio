@@ -26,8 +26,6 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon.png">
 
   <!-- DePay Web3 Solana Payment Widget -->
-  <script src="https://integrate.depay.com/widgets/v13.js" defer></script>
-
   <!-- AEO & SEO Schema.org Graph -->
   <script type="application/ld+json">
   {
@@ -42,7 +40,7 @@
         "description": "High-precision cron AST parser, natural language humanizer, 24x7 weekly rhythm heatmap, and multi-dialect transpiler.",
         "offers": {
           "@type": "Offer",
-          "price": "19.00",
+          "price": "0",
           "priceCurrency": "USD"
         },
         "author": {
@@ -93,6 +91,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/assets/icon.png">
+  <link rel="stylesheet" href="/wave.css">
+  <link rel="stylesheet" href="/wave-states.css">
+  <link rel="stylesheet" href="/wave-type.css">
 
   <style>
     :root {
@@ -582,7 +583,7 @@
 
     /* Paywall Overlay */
     .paywall-locked .code-box {
-      filter: blur(6px);
+      filter: none;
       user-select: none;
       pointer-events: none;
     }
@@ -592,7 +593,7 @@
       position: absolute;
       inset: 0;
       background: rgba(8, 8, 11, 0.75);
-      backdrop-filter: blur(4px);
+      backdrop-filter: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -650,7 +651,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(8px);
+      backdrop-filter: none;
       z-index: 1000;
       align-items: center;
       justify-content: center;
@@ -720,55 +721,65 @@
       animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
   </style>
+
+  <!-- Zoth 100% Open-Access & Buy Us a Coffee Invariant -->
+  <script id="zoth-open-access-init">
+    (function() {
+      try {
+        var keys = ['agent_audiocipher_pro', 'agent_cyber_turtle_pro', 'agent_datamosh_pro', 'agent_nexus3d_pro', 'agent_policy_pro', 'audiocipher_license', 'audiocipher_pro_licensed', 'badge3d_pro_licensed', 'certpath_pro_key', 'certpath_pro_licensed', 'cron_rhythm_pro_key', 'cron_rhythm_pro_licensed', 'cwv-speed-engine_pro_licensed', 'cwv_pro_licensed', 'cyber_turtle_pro_licensed', 'datamosh_pro_licensed', 'deepsearch-research-agent_pro_licensed', 'deepsearch_pro_licensed', 'entropy_studio_licensed', 'envguard-secrets-vault_pro_licensed', 'envguard_pro_license', 'etsy_connector_pro', 'jwt_guard_licensed', 'mdg_pro_licensed', 'neuro_pro_licensed', 'nexus3d_pro_licensed', 'omnipost_pro_key', 'omnipost_pro_licensed', 'osint_pro_licensed', 'payload-entropy-studio_pro_licensed', 'polyglot_pro_licensed', 'pro_licensed', 'promptmaster_pro_licensed', 'promptmaster_pro_active', 'robots-txt-auditor_pro_licensed', 'robots_pro_licensed', 'schema_illustrator_pro_licensed', 'sovereign_pro_licensed', 'subsweep-lead-scanner_pro_licensed', 'subsweep_licensed', 'turtle_pro_licensed', 'ufo_sacred_licensed', 'vector-search-engine_pro_licensed', 'vector_studio_pro_licensed', 'web-security-guard_pro_licensed', 'web_security_guard_licensed', 'yourdigitalspace_pro', 'zela_guide_pro_licensed', 'zoth_ascii_magic_pro', 'zoth_audiocipher_licensed', 'zoth_badge3d_licensed', 'zoth_cyber_turtle_licensed', 'zoth_datamosh_licensed', 'zoth_etsy_licensed', 'zoth_nexus3d_licensed', 'zoth_osint_licensed', 'zoth_policy_licensed', 'zoth_sacred_licensed', 'zoth_ufo_licensed'];
+        for (var i = 0; i < keys.length; i++) {
+          localStorage.setItem(keys[i], 'true');
+        }
+        localStorage.setItem('pm_license_v2', JSON.stringify({ method: 'open_access', ref: 'free_forever', at: '2026-01-01T00:00:00Z' }));
+        window.isPro = true;
+        window.isProLicensed = true;
+      } catch (e) {}
+    })();
+  </script>
+  <style id="zoth-open-access-override">
+    .paywall-overlay, .output-paywall-overlay, #outputPaywallOverlay, #schemaPaywallOverlay,
+    #transformerPaywallOverlay, #proPaywallModal, #licenseModal, #salesBanner, #founding-offer-banner,
+    #funnelHeroBanner, [data-alias="paywallOverlay"], [data-alias="founding-offer-banner"] {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    .paywall-wrap #outputPreview, .paywall-wrap #reportContentArea, .paywall-content,
+    .paywall-content.locked, .paywall-wrap.is-locked #outputPreview, .paywall-wrap.locked #outputPreview {
+      filter: none !important;
+      -webkit-filter: none !important;
+      user-select: auto !important;
+      pointer-events: auto !important;
+    }
+  </style>
+
 </head>
 <body>
+
+<div id="zoth-coffee-support-bar" style="background: linear-gradient(90deg, rgba(16,185,129,0.12), rgba(212,175,55,0.14)); border-bottom: 1px solid rgba(212,175,55,0.35); padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; z-index: 9999;">
+  <span style="color: #10B981; font-weight: 800;">✦ 100% FREE &amp; OPEN ACCESS · ZERO PAYWALLS</span>
+  <a href="https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X" target="_blank" rel="noopener noreferrer" style="background: #D4AF37; color: #08080B; padding: 4px 12px; border-radius: 6px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">☕ Buy Us a Coffee (Stripe)</a>
+  <a href="solana:GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK" onclick="if(navigator.clipboard){navigator.clipboard.writeText('GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK');this.textContent='✓ Copied GG2eQb...dXoK!';}" style="background: rgba(20,241,149,0.15); color: #14F195; border: 1px solid rgba(20,241,149,0.45); padding: 4px 12px; border-radius: 6px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">◎ Solana Tip (GG2e...dXoK)</a>
+</div>
+
 
   <header>
     <div class="brand">
       <img src="assets/icon.png" alt="Cron Rhythm Studio Logo" class="brand-icon" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; border: 1px solid var(--gold-border);">
       <div class="title-group">
         <h1>Cron Rhythm Studio <span class="version-tag">v2.5 SOVEREIGN</span></h1>
-        <p>In-Browser AST Parser, 24x7 Rhythm Heatmap &amp; Multi-Dialect Transpiler</p>
+        <p>In-Browser AST Parser, 24x7 Rhythm Heatmap & Multi-Dialect Transpiler</p>
       </div>
     </div>
     <div class="header-actions">
-      <div class="badge-status" id="licenseBadge">
-        <span class="status-dot"></span>
-        <span id="licenseBadgeText">⚡ FREE TIER</span>
+      <div class="badge-status" id="licenseBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); font-size: 11px; font-weight: 800; color: #10B981;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
+        <span id="licenseBadgeText">✦ 100% UNLOCKED</span>
       </div>
-      <button class="chip-btn" id="activateKeyBtn" onclick="openLicenseModal()" style="border-color: var(--gold-border); color: var(--gold-soft);">
-        ✦ UNLOCK PRO
-      </button>
     </div>
   </header>
 
   <main class="main-container">
-
-    <!-- Founding Member Sales Funnel Banner -->
-    <div class="sales-banner" id="salesBanner" data-alias="founding-offer-banner">
-      <div class="sales-content">
-        <div class="sales-badge">
-          ⭐ FOUNDING MEMBER ACCESS · 76% DISCOUNT
-        </div>
-        <div class="sales-title">
-          Unlock Unlimited Multi-Platform Transpilation &amp; Full AST CI/CD Exports
-        </div>
-        <div class="sales-desc">
-          Get lifetime access to Kubernetes, AWS EventBridge, GitHub Actions, and Systemd transpilers for <strong>$19 one-time</strong> (<del style="color: #64748B;">$79 regular</del>). Dual Stripe + Solana checkout rails.
-        </div>
-      </div>
-      <div class="sales-ctas">
-        <a href="https://buy.stripe.com/4gMfZg9AheOsdhKbcAfw40L" target="_blank" rel="noopener" class="btn-checkout btn-stripe">
-          ★ Unlock Pro — $19 Lifetime
-        </a>
-        <button onclick="openDePayCheckout(event)" class="btn-checkout btn-solana">
-          ◎ Pay with Solana
-        </button>
-        <button onclick="openLicenseModal()" style="background: none; border: none; color: var(--gold-soft); font-family: var(--font-mono); font-size: 0.74rem; cursor: pointer; text-decoration: underline;">
-          ✦ Activate Key
-        </button>
-      </div>
-    </div>
 
     <!-- Main Workspace Hero Input -->
     <div class="card">
@@ -857,31 +868,9 @@
           Production Kubernetes batch/v1 CronJob spec with concurrency policy and restart semantics.
         </p>
 
-        <!-- Transpiled Code Output with Frosted Paywall Blur -->
+        <!-- Transpiled Code Output -->
         <div class="code-container" id="codeContainer">
           <pre class="code-box" id="transpiledOutput"></pre>
-          <div class="paywall-overlay" id="paywallOverlay">
-            <div class="lock-card">
-              <div style="font-size: 2rem; margin-bottom: 0.5rem;">★</div>
-              <h3 style="font-size: 1.05rem; font-weight: 800; color: #FFFFFF; margin-bottom: 0.4rem;">
-                Pro Spec Locked
-              </h3>
-              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.2rem;">
-                Full multi-dialect transpilation manifests, CI/CD templates, and AST export require Founding Member Pro.
-              </p>
-              <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-                <a href="https://buy.stripe.com/4gMfZg9AheOsdhKbcAfw40L" target="_blank" rel="noopener" class="btn-checkout btn-stripe" style="justify-content: center;">
-                  ★ Unlock Pro — $19 Lifetime
-                </a>
-                <button onclick="openDePayCheckout(event)" class="btn-checkout btn-solana" style="justify-content: center;">
-                  ◎ Pay with Solana
-                </button>
-                <button id="btn-paywall-key" onclick="openLicenseModal()" style="background: none; border: none; color: var(--gold-soft); font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer; text-decoration: underline; margin-top: 0.3rem;">
-                  Already have a key? Activate now
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 0.8rem;">
@@ -898,49 +887,11 @@
 
   </main>
 
-  <!-- Pro Paywall Modal -->
-  <div class="modal-backdrop" id="licenseModal" data-alias="paywall-modal">
-    <div class="modal-card">
-      <button class="modal-close" onclick="closeLicenseModal()">&times;</button>
-      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
-        <span style="font-size: 1.5rem;">⭐</span>
-        <h2 style="font-size: 1.2rem; font-weight: 800; color: #FFFFFF;">Cron Rhythm Pro Activation</h2>
-      </div>
-      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-        Enter your purchase receipt email or lifetime license key to permanently dissolve all paywalls.
-      </p>
-
-      <div style="margin-bottom: 1.2rem;">
-        <label style="display: block; font-family: var(--font-mono); font-size: 0.75rem; color: var(--gold-accent); margin-bottom: 0.4rem;">
-          LICENSE KEY OR STRIPE EMAIL:
-        </label>
-        <input type="text" id="license-input" data-alias="license-input" placeholder="CRON-PRO-2026 or receipt email" style="width: 100%; font-size: 0.95rem; min-height: 44px;">
-      </div>
-
-      <div style="display: flex; gap: 0.8rem; margin-bottom: 1.5rem;">
-        <button id="btnActivateKey" class="btn-checkout btn-stripe" onclick="activateLicenseKey()" style="flex: 1; justify-content: center;">
-          Activate Pro ⚡
-        </button>
-        <button class="btn-checkout btn-solana" onclick="activateDemoLicense()" style="flex: 1; justify-content: center;">
-          Instant Preview Key
-        </button>
-      </div>
-
-      <div style="padding: 1rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); font-size: 0.75rem; color: var(--text-muted); line-height: 1.6;">
-        <strong style="color: var(--gold-soft);">Pro Feature Matrix:</strong><br>
-        ✓ Unlocked Kubernetes, GitHub Actions, AWS EventBridge &amp; Systemd code copy<br>
-        ✓ Direct AST JSON download with timeline calculations<br>
-        ✓ 100% in-browser client execution with zero network telemetry<br>
-        ✓ Permanent localStorage activation across visits
-      </div>
-    </div>
-  </div>
-
   <div id="toast" class="toast">Action completed!</div>
 
   <footer>
     <div style="margin-bottom: 0.4rem; font-weight: 700; color: #FFFFFF;">
-      Cron Rhythm Studio • High-Precision Cron AST Parser &amp; Multi-Dialect Transpiler
+      Cron Rhythm Studio • High-Precision Cron AST Parser & Multi-Dialect Transpiler
     </div>
     <div>
       Engineered by <a href="https://nealfrazier.tech" target="_blank" rel="noopener">Neal Frazier Tech (@1nc0gn30)</a> • <a href="https://nullai.tech" target="_blank" rel="noopener">NullAI Platform</a> • <a href="https://github.com/1nc0gn30/cron-rhythm-studio" target="_blank" rel="noopener">GitHub</a>
@@ -949,55 +900,25 @@
 
   <script>
     let currentTarget = 'kubernetes';
-    let isProLicensed = false;
+    let isProLicensed = true;
 
-    // License Management
+    // License Management (100% Free & Open Access)
     function checkLicense() {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('licensed') === 'true' || urlParams.get('pro') === '1') {
-        localStorage.setItem('cron_rhythm_pro_licensed', 'true');
-        localStorage.setItem('cron_rhythm_pro_key', 'true');
-        try {
-          const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-          window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-        } catch (e) {}
-      }
-      isProLicensed = localStorage.getItem('cron_rhythm_pro_licensed') === 'true' ||
-                      localStorage.getItem('cron_rhythm_pro_key') === 'true' ||
-                      localStorage.getItem('pro_licensed') === 'true';
+      isProLicensed = true;
 
       const codeContainer = document.getElementById('codeContainer');
-      const proBadge = document.getElementById('licenseBadge') || document.getElementById('pro-badge');
       const licenseBadgeText = document.getElementById('licenseBadgeText');
       const salesBanner = document.getElementById('salesBanner');
       const activateKeyBtn = document.getElementById('activateKeyBtn');
 
-      if (isProLicensed) {
-        if (codeContainer) codeContainer.classList.remove('paywall-locked');
-        if (licenseBadgeText) licenseBadgeText.textContent = '⭐ PRO ACTIVE';
-        if (proBadge) {
-          proBadge.style.background = 'rgba(212, 175, 55, 0.2)';
-          proBadge.style.color = '#F5E6AB';
-          proBadge.style.borderColor = 'rgba(212, 175, 55, 0.4)';
-        }
-        if (salesBanner) salesBanner.style.display = 'none';
-        if (activateKeyBtn) activateKeyBtn.style.display = 'none';
-      } else {
-        if (codeContainer) codeContainer.classList.add('paywall-locked');
-        if (licenseBadgeText) licenseBadgeText.textContent = '⚡ FREE TIER';
-        if (proBadge) {
-          proBadge.style.background = 'rgba(16, 185, 129, 0.15)';
-          proBadge.style.color = 'var(--green-accent)';
-          proBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        }
-        if (salesBanner) salesBanner.style.display = 'flex';
-        if (activateKeyBtn) activateKeyBtn.style.display = 'inline-flex';
-      }
+      if (codeContainer) codeContainer.classList.remove('paywall-locked');
+      if (licenseBadgeText) licenseBadgeText.textContent = '✦ 100% UNLOCKED';
+      if (salesBanner) salesBanner.style.display = 'none';
+      if (activateKeyBtn) activateKeyBtn.style.display = 'none';
     }
 
-    function openLicenseModal() {
-      document.getElementById('licenseModal').classList.add('open');
-    }
+    function openLicenseModal() {}
+    function closeLicenseModal() {}
 
     function closeLicenseModal() {
       document.getElementById('licenseModal').classList.remove('open');

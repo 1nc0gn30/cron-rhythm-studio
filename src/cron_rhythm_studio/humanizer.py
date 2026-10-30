@@ -16,7 +16,7 @@ MONTH_NAMES_FULL = [
 ]
 
 DAY_NAMES_FULL = [
-    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ]
 
 ORDINALS = ["", "1st", "2nd", "3rd", "4th", "5th"]
@@ -183,8 +183,9 @@ def explain_cron_parts(ast_or_expr: Union[CronScheduleAST, str]) -> Dict[str, st
             nth_word = _format_ordinal(nth)
             parts["day_of_week"] = f"on the {nth_word} {DAY_NAMES_FULL[d_idx]} of the month"
     else:
-        dows = sorted(ast.fields.get(CronFieldType.DAY_OF_WEEK.value, set()))
-        if len(dows) == 7:
+        raw_dows = ast.fields.get(CronFieldType.DAY_OF_WEEK.value, set())
+        dows = sorted({0 if d == 7 else d for d in raw_dows})
+        if len(dows) >= 7:
             parts["day_of_week"] = "every day of the week"
         elif dows == [1, 2, 3, 4, 5]:
             parts["day_of_week"] = "Monday through Friday"
@@ -225,7 +226,8 @@ def humanize_cron(ast_or_expr: Union[CronScheduleAST, str], verbose: bool = Fals
     hours = sorted(ast.fields.get(CronFieldType.HOUR.value, {0}))
     doms = sorted(ast.fields.get(CronFieldType.DAY_OF_MONTH.value, set(range(1, 32))))
     months = sorted(ast.fields.get(CronFieldType.MONTH.value, set(range(1, 13))))
-    dows = sorted(ast.fields.get(CronFieldType.DAY_OF_WEEK.value, set(range(0, 7))))
+    raw_dows = ast.fields.get(CronFieldType.DAY_OF_WEEK.value, set(range(0, 7)))
+    dows = sorted({0 if d == 7 else d for d in raw_dows})
 
     # 1. Time Component
     time_phrase = ""

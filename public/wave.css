@@ -1,0 +1,141 @@
+/* Cron Rhythm Studio — Precision Cadence Stylesheet (wave.css) */
+/* Anchored type hierarchy, visible focus rings, and result appearance motion */
+
+/* ==========================================================================
+   1. Precision Typography & Hierarchy
+   ========================================================================== */
+
+.card-title {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.human-banner {
+  border-left: 3px solid var(--gold-accent);
+  background: rgba(212, 175, 55, 0.07);
+}
+
+#humanText {
+  color: #FFFFFF;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+#transpileDesc {
+  color: #94A3B8;
+  line-height: 1.5;
+}
+
+.code-box {
+  tab-size: 2;
+  font-feature-settings: "tnum" 1;
+}
+
+.timeline-list .run-card {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ==========================================================================
+   2. Uncompromising Visible Focus States (WCAG 2.4.7 & 2.4.11)
+   ========================================================================== */
+
+input[type="text"]:focus-visible {
+  outline: none;
+  border-color: var(--gold-accent);
+  box-shadow: 0 0 0 2px var(--bg-dark), 0 0 0 4px var(--gold-accent);
+}
+
+.chip-btn:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--cyan-accent);
+  outline-offset: -1px;
+}
+
+.btn-checkout:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+footer a:focus-visible {
+  outline: 2px solid var(--cyan-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   3. Result Appearance Motion (Transform + Opacity)
+   ========================================================================== */
+
+@keyframes rhythmResultEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.timeline-list .run-card {
+  animation: rhythmResultEnter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.timeline-list .run-card:nth-child(1) { animation-delay: 15ms; }
+.timeline-list .run-card:nth-child(2) { animation-delay: 30ms; }
+.timeline-list .run-card:nth-child(3) { animation-delay: 45ms; }
+.timeline-list .run-card:nth-child(4) { animation-delay: 60ms; }
+.timeline-list .run-card:nth-child(5) { animation-delay: 75ms; }
+.timeline-list .run-card:nth-child(6) { animation-delay: 90ms; }
+.timeline-list .run-card:nth-child(7) { animation-delay: 105ms; }
+.timeline-list .run-card:nth-child(8) { animation-delay: 120ms; }
+.timeline-list .run-card:nth-child(9) { animation-delay: 135ms; }
+.timeline-list .run-card:nth-child(10) { animation-delay: 150ms; }
+
+@keyframes heatmapCellEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.heatmap-cell {
+  animation: heatmapCellEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ==========================================================================
+   4. Motion Safety Guarantee
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-list .run-card,
+  .heatmap-cell {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .chip-btn,
+  .tab-btn,
+  .btn-checkout,
+  .heatmap-cell {
+    transition: none !important;
+  }
+}

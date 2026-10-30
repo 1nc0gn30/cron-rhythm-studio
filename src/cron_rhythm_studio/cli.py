@@ -1469,11 +1469,12 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
             })
             return
 
-        # 8. REST API: /api/health or /api/diagnostics
-        if path in ("/api/health", "/api/diagnostics"):
+        # 8. REST API: /health, /api/health or /api/diagnostics
+        if path in ("/health", "/api/health", "/api/diagnostics"):
             plat_info = get_platform_info()
             self._send_json({
-                "status": "healthy",
+                "status": "ok",
+                "service": "cron-rhythm-studio",
                 "version": __version__,
                 "platform": plat_info.as_dict(),
                 "time_utc": datetime.now(timezone.utc).isoformat(),

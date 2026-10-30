@@ -1,0 +1,200 @@
+/* Cron Rhythm Studio — Precision States & Safe Motion (wave-states.css) */
+/* Single Anchor Idea: Cadence & Precision — Gold precision lines, tactile feedback, and calm empty/error states */
+
+/* ==========================================================================
+   1. Precision Focus-Visible Rings (WCAG 2.4.7 & 2.4.11)
+   ========================================================================== */
+
+#license-input:focus-visible {
+  outline: none;
+  border-color: var(--gold-accent);
+  box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--gold-accent);
+}
+
+.sales-ctas button:focus-visible,
+#btn-paywall-key:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.btn-checkout.btn-stripe:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--bg-dark), 0 0 16px rgba(212, 175, 55, 0.6);
+}
+
+.btn-checkout.btn-solana:focus-visible {
+  outline: 2px solid var(--cyan-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--bg-dark), 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
+.chip-btn:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.35);
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--cyan-accent);
+  outline-offset: -1px;
+}
+
+.modal-close:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+footer a:focus-visible {
+  outline: 2px solid var(--cyan-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   2. Tactile Hover Feedback
+   ========================================================================== */
+
+.tab-btn:hover:not(.active) {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-subtle);
+}
+
+.sales-ctas button:hover,
+#btn-paywall-key:hover {
+  color: #FFFFFF !important;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+.modal-close {
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.modal-close:hover {
+  color: #FFFFFF;
+  transform: scale(1.1);
+}
+
+.btn-checkout.btn-stripe:hover {
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.45);
+}
+
+.btn-checkout.btn-solana:hover {
+  background: rgba(21, 24, 36, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.run-card {
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.run-card:hover {
+  border-color: var(--gold-border);
+  background: rgba(21, 24, 36, 0.85);
+  transform: translateX(2px);
+}
+
+footer a:hover {
+  color: var(--gold-soft);
+  text-shadow: 0 0 6px rgba(212, 175, 55, 0.3);
+}
+
+/* ==========================================================================
+   3. Quiet Empty State Presentation
+   ========================================================================== */
+
+.timeline-list:empty::before {
+  content: "No upcoming executions projected.";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: rgba(8, 8, 11, 0.3);
+}
+
+.code-box:empty::before {
+  content: "Awaiting valid expression to transpile...";
+  display: block;
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.heatmap-grid:empty::before {
+  content: "Awaiting valid schedule expression to compute 24x7 matrix...";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1 / -1;
+  min-height: 120px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-family: var(--font-mono);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: rgba(8, 8, 11, 0.3);
+}
+
+/* ==========================================================================
+   4. Error & Validation States
+   ========================================================================== */
+
+input[type="text"]:invalid {
+  border-color: var(--red-accent) !important;
+  box-shadow: 0 0 0 2px var(--bg-dark), 0 0 0 4px rgba(244, 63, 94, 0.35);
+}
+
+#validityBadge[style*="244,63,94"],
+#validityBadge[style*="F43F5E"],
+#validityBadge[style*="rgb(244"] {
+  border-color: rgba(244, 63, 94, 0.45) !important;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.25);
+}
+
+/* Keyframes for existing toast notification */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   5. Prefers-Reduced-Motion Safety Guarantee
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .toast,
+  .modal-backdrop,
+  .btn-checkout,
+  .chip-btn,
+  .tab-btn,
+  .heatmap-cell,
+  .run-card,
+  .modal-close {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

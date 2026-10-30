@@ -10,8 +10,8 @@
 > **100% Zero Egress Client-Side Execution** — Runs natively in the browser with zero cloud dependencies.
 
 [![Live App](https://img.shields.io/badge/Live%20App-cronrhythm.nullai.tech-gold?style=for-the-badge&logo=googlechrome&logoColor=white)](https://cronrhythm.nullai.tech)
-[![Stripe Pro](https://img.shields.io/badge/Stripe%20Checkout-$19%20Lifetime-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/7sI7sA8hM2X8eFG8ww)
-[![Solana DePay](https://img.shields.io/badge/Solana%20DePay-Web3%20Checkout-14F195?style=for-the-badge&logo=solana&logoColor=black)](https://cronrhythm.nullai.tech)
+[![Buy Us a Coffee](https://img.shields.io/badge/☕%20Buy%20Us%20a%20Coffee-Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X)
+[![Solana Tip](https://img.shields.io/badge/Solana%20Tip-GG2eQbVh...-14F195?style=for-the-badge&logo=solana&logoColor=black)](https://cronrhythm.nullai.tech)
 [![Zero Egress](https://img.shields.io/badge/Privacy-100%25%20In--Browser%20AST-10B981?style=for-the-badge)](https://cronrhythm.nullai.tech)
 
 [![CI](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml)
@@ -182,13 +182,13 @@ Tested across:
 
 ---
 
-## Founding Member Pro ($19 Lifetime)
+## 100% Free & Open Access (Zero Paywalls)
 
-Cron Rhythm Studio is engineered as an autonomous sovereign developer utility with dual checkout rails:
+Cron Rhythm Studio is engineered as an autonomous sovereign developer utility with zero paywalls, zero locked features, and zero license requirements. Everything is 100% unlocked by default.
 
-- **Stripe Checkout**: [Instant Lifetime License ($19)](https://buy.stripe.com/7sI7sA8hM2X8eFG8ww) (Credit Cards, Apple Pay, Google Pay)
-- **Solana Web3 DePay**: On-chain instant checkout via DePay integration (`GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK`)
-- **Pro Capabilities**: Full unlocked AST JSON export, unrestricted multi-platform code copying (Kubernetes, AWS EventBridge, GitHub Actions, Systemd), and lifetime zero-egress updates.
+- **☕ Buy Us a Coffee (Stripe)**: [Support via Stripe](https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X)
+- **◎ Solana Community Tip Address**: `GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK`
+- **Capabilities**: Full unlocked AST JSON export, unrestricted multi-platform code copying (Kubernetes, AWS EventBridge, GitHub Actions, Systemd), and lifetime zero-egress updates.
 
 ---
 

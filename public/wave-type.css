@@ -1,0 +1,132 @@
+/* Cron Rhythm Studio — Typography Precision (wave-type.css) */
+/* Readable measure on work surfaces, tabular figures on scores/prices, and clearer heading tracking */
+
+/* ==========================================================================
+   1. Readable Measure on Main Work Surface (Design Director: 60-72ch)
+   ========================================================================== */
+
+.sales-desc {
+  max-width: 64ch;
+  line-height: 1.55;
+}
+
+.title-group p {
+  max-width: 58ch;
+  line-height: 1.45;
+}
+
+#transpileDesc {
+  max-width: 65ch;
+  line-height: 1.55;
+}
+
+.human-banner {
+  line-height: 1.45;
+}
+
+#humanText {
+  line-height: 1.45;
+}
+
+.modal-card {
+  max-width: 520px;
+}
+
+/* ==========================================================================
+   2. Tabular Numbers on Existing Scores & Prices
+   ========================================================================== */
+
+.btn-checkout {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.btn-stripe {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.btn-solana {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.sales-badge {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.sales-desc {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+#intensitySummary {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.heatmap-header-cell {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.heatmap-day-label {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.version-tag {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.badge-status {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+input[type="text"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.code-box {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.tab-btn {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.timeline-list {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ==========================================================================
+   3. Clearer Heading & Eyebrow Tracking
+   ========================================================================== */
+
+.title-group h1 {
+  letter-spacing: -0.02em;
+}
+
+.sales-title {
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.card-title {
+  letter-spacing: 0.08em;
+}
+
+.sales-badge {
+  letter-spacing: 0.05em;
+}
+
+.version-tag {
+  letter-spacing: 0.05em;
+}
