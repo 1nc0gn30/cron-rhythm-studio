@@ -4,8 +4,6 @@
 > **100% Zero Egress Client-Side Execution** — Runs natively in the browser with zero cloud dependencies.
 
 [![Live App](https://img.shields.io/badge/Live%20App-cronrhythm.nullai.tech-gold?style=for-the-badge&logo=googlechrome&logoColor=white)](https://cronrhythm.nullai.tech)
-[![Stripe Pro](https://img.shields.io/badge/Stripe%20Checkout-$19%20Lifetime-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/7sI7sA8hM2X8eFG8ww)
-[![Solana DePay](https://img.shields.io/badge/Solana%20DePay-Web3%20Checkout-14F195?style=for-the-badge&logo=solana&logoColor=black)](https://cronrhythm.nullai.tech)
 [![Zero Egress](https://img.shields.io/badge/Privacy-100%25%20In--Browser%20AST-10B981?style=for-the-badge)](https://cronrhythm.nullai.tech)
 
 [![CI](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml)
@@ -176,19 +174,9 @@ Tested across:
 
 ---
 
-## Founding Member Pro ($19 Lifetime)
-
-Cron Rhythm Studio is engineered as an autonomous sovereign developer utility with dual checkout rails:
-
-- **Stripe Checkout**: [Instant Lifetime License ($19)](https://buy.stripe.com/7sI7sA8hM2X8eFG8ww) (Credit Cards, Apple Pay, Google Pay)
-- **Solana Web3 DePay**: On-chain instant checkout via DePay integration (`GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK`)
-- **Pro Capabilities**: Full unlocked AST JSON export, unrestricted multi-platform code copying (Kubernetes, AWS EventBridge, GitHub Actions, Systemd), and lifetime zero-egress updates.
-
----
-
 ## Author & Sovereignty
 
-- **Engineered by**: [Neal Frazier Tech](https://nealfrazier.tech) ([@1nc0gn30](https://github.com/1nc0gn30))
+- **Engineered by**: [1nc0gn30](https://github.com/1nc0gn30)
 - **Ecosystem**: [NullAI Platform](https://nullai.tech)
 - **Repository**: [1nc0gn30/cron-rhythm-studio](https://github.com/1nc0gn30/cron-rhythm-studio)
 
@@ -196,4 +184,4 @@ Cron Rhythm Studio is engineered as an autonomous sovereign developer utility wi
 
 ## License
 
-MIT License. Engineered with zero external runtime dependencies by Neal Frazier Tech.
+MIT License. Engineered with zero external runtime dependencies by 1nc0gn30.
