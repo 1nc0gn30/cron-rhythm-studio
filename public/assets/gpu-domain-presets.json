@@ -1,0 +1,22 @@
+{
+  "presets": [
+    {
+      "name": "Cron Rhythm Studio \u2014 Sovereign Zero-Trust Audit",
+      "description": "Deterministic high-throughput inspection preset for Cron Rhythm Studio engineered on ZothOS.",
+      "payload": "--repo cron-rhythm-studio --mode sovereign-audit --verify-checksum --strict",
+      "expected_metric": "99.98% deterministic pass rate (<4.2ms AST latency)"
+    },
+    {
+      "name": "Cron Rhythm Studio \u2014 A100 80GB Neural Stress Vector",
+      "description": "Multi-threaded benchmark payload synthesized for Cron Rhythm Studio pipeline verification.",
+      "payload": "--repo cron-rhythm-studio --benchmark --threads 16 --format json",
+      "expected_metric": "14,200 ops/sec sustained throughput"
+    },
+    {
+      "name": "Cron Rhythm Studio \u2014 Edge Production Hardening",
+      "description": "Pre-deployment production guardrail preset for Cron Rhythm Studio client-side & CLI parity.",
+      "payload": "cron-rhythm-studio-tui --benchmark --json",
+      "expected_metric": "Zero console errors \u2022 -14.0 LUFS \u2022 Triple-viewport verified"
+    }
+  ]
+}

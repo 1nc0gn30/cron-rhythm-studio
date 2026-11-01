@@ -194,7 +194,7 @@ Cron Rhythm Studio is engineered as an autonomous sovereign developer utility wi
 
 ## Author & Sovereignty
 
-- **Engineered by**: [Neal Frazier Tech](https://nealfrazier.tech) ([@1nc0gn30](https://github.com/1nc0gn30))
+- **Engineered by**: [1nc0gn30 • NullAI](https://nullai.tech) ([@1nc0gn30](https://github.com/1nc0gn30))
 - **Ecosystem**: [NullAI Platform](https://nullai.tech)
 - **Repository**: [1nc0gn30/cron-rhythm-studio](https://github.com/1nc0gn30/cron-rhythm-studio)
 
@@ -202,4 +202,4 @@ Cron Rhythm Studio is engineered as an autonomous sovereign developer utility wi
 
 ## License
 
-MIT License. Engineered with zero external runtime dependencies by Neal Frazier Tech.
+MIT License. Engineered with zero external runtime dependencies by 1nc0gn30 • NullAI.

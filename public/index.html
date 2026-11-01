@@ -25,7 +25,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon.png">
 
-  <!-- DePay Web3 Solana Payment Widget -->
+  <!-- Solana Tip Web3 Solana Payment Widget -->
   <!-- AEO & SEO Schema.org Graph -->
   <script type="application/ld+json">
   {
@@ -45,12 +45,12 @@
         },
         "author": {
           "@type": "Person",
-          "name": "Neal Frazier",
-          "url": "https://nealfrazier.tech"
+          "name": "1nc0gn30",
+          "url": "https://nullai.tech"
         },
         "publisher": {
           "@type": "Organization",
-          "name": "Neal Frazier Tech",
+          "name": "1nc0gn30 • NullAI",
           "url": "https://nullai.tech"
         }
       },
@@ -894,7 +894,7 @@
       Cron Rhythm Studio • High-Precision Cron AST Parser & Multi-Dialect Transpiler
     </div>
     <div>
-      Engineered by <a href="https://nealfrazier.tech" target="_blank" rel="noopener">Neal Frazier Tech (@1nc0gn30)</a> • <a href="https://nullai.tech" target="_blank" rel="noopener">NullAI Platform</a> • <a href="https://github.com/1nc0gn30/cron-rhythm-studio" target="_blank" rel="noopener">GitHub</a>
+      Engineered by <a href="https://nullai.tech" target="_blank" rel="noopener">1nc0gn30 (@1nc0gn30)</a> • <a href="https://nullai.tech" target="_blank" rel="noopener">NullAI Platform</a> • <a href="https://github.com/1nc0gn30/cron-rhythm-studio" target="_blank" rel="noopener">GitHub</a>
     </div>
   </footer>
 
@@ -905,45 +905,10 @@
     // License Management (100% Free & Open Access)
     function checkLicense() {
       isProLicensed = true;
-
       const codeContainer = document.getElementById('codeContainer');
       const licenseBadgeText = document.getElementById('licenseBadgeText');
-      const salesBanner = document.getElementById('salesBanner');
-      const activateKeyBtn = document.getElementById('activateKeyBtn');
-
       if (codeContainer) codeContainer.classList.remove('paywall-locked');
       if (licenseBadgeText) licenseBadgeText.textContent = '✦ 100% UNLOCKED';
-      if (salesBanner) salesBanner.style.display = 'none';
-      if (activateKeyBtn) activateKeyBtn.style.display = 'none';
-    }
-
-    function openLicenseModal() {}
-    function closeLicenseModal() {}
-
-    function closeLicenseModal() {
-      document.getElementById('licenseModal').classList.remove('open');
-    }
-
-    function activateLicenseKey(providedKey) {
-      const inputEl = document.getElementById('license-input') || document.getElementById('licenseInput');
-      const val = (providedKey || (inputEl ? inputEl.value : '')).trim();
-      if (val.length > 3 || val.toUpperCase() === 'CRON-PRO-2026' || val.toUpperCase() === 'SOVEREIGN-PRO-2026' || val.includes('@')) {
-        localStorage.setItem('cron_rhythm_pro_licensed', 'true');
-        localStorage.setItem('cron_rhythm_pro_key', val);
-        checkLicense();
-        closeLicenseModal();
-        showToast('⭐ Cron Rhythm Pro successfully activated! All paywalls dissolved.');
-      } else {
-        showToast('Please enter a valid receipt email or license key.');
-      }
-    }
-
-    function activateDemoLicense() {
-      localStorage.setItem('cron_rhythm_pro_licensed', 'true');
-      localStorage.setItem('cron_rhythm_pro_key', 'demo_preview');
-      checkLicense();
-      closeLicenseModal();
-      showToast('⭐ Instant preview license granted! All transpilation manifests unlocked.');
     }
 
     function showToast(msg) {
@@ -959,27 +924,6 @@
       setTimeout(() => {
         t.style.display = 'none';
       }, 3500);
-    }
-
-    function openDePayCheckout(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      if (typeof DePayButtons !== 'undefined') {
-        try {
-          DePayButtons.init({
-            integration: '428790dd-7ad1-407c-8ecf-c048c77a4cb8',
-            container: document.body
-          });
-          return;
-        } catch (err) {
-          console.warn('DePay widget initialization error:', err);
-        }
-      }
-      window.open('https://solana.fm/address/GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK', '_blank');
-      openLicenseModal();
-    }
-
-    function triggerSolanaCheckout(e) {
-      openDePayCheckout(e);
     }
 
     // Pure Client-Side Cron Engine
@@ -1336,5 +1280,6 @@
       evaluateSchedule();
     });
   </script>
+  <script src="/assets/sovereign-upgrade.js" defer></script>
 </body>
 </html>
