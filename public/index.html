@@ -1280,6 +1280,22 @@
       evaluateSchedule();
     });
   </script>
-  <script src="/assets/sovereign-upgrade.js" defer></script>
+  
+
+  <script src="/sovereign_tutorial.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", function() {
+      if (window.createSovereignTutorial) {
+        window.createSovereignTutorial({
+          toolId: "cron-rhythm-studio",
+          toolName: "CronRhythm Studio",
+          tagline: "Master cron job schedules with fun visual beats and musical rhythms!",
+          accentColor: "#F43F5E",
+          steps: [{"icon": "\u23f0", "title": "What is a Cron Job?", "desc": "A cron job is an automated alarm clock for computers that tells programs when to run (like every 5 minutes or at 3 AM)."}, {"icon": "\ud83e\udd41", "title": "Visual Rhythm Matrix", "desc": "Watch cron schedules light up like a musical beat sequencer so you never mess up an asterisk (*) again!"}, {"icon": "\ud83d\udccb", "title": "Human-Readable Translations", "desc": "Type or click any schedule to see plain English explanations of exactly when your job will trigger."}]
+        });
+      }
+    });
+  </script>
+
 </body>
 </html>
