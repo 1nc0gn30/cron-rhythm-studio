@@ -11,8 +11,7 @@
   box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--gold-accent);
 }
 
-.sales-ctas button:focus-visible,
-#btn-paywall-key:focus-visible {
+.sales-ctas button:focus-visible {
   outline: 2px solid var(--gold-accent);
   outline-offset: 3px;
   border-radius: 4px;
@@ -63,8 +62,7 @@ footer a:focus-visible {
   border-color: var(--border-subtle);
 }
 
-.sales-ctas button:hover,
-#btn-paywall-key:hover {
+.sales-ctas button:hover {
   color: #FFFFFF !important;
   text-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
 }

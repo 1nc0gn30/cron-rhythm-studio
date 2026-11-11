@@ -13,8 +13,8 @@
     "cron-rhythm-studio": "./bin/cron-rhythm.js"
   },
   "scripts": {
-    "start": "python3 -m http.server 8092 --directory public",
-    "serve:public": "python3 -m http.server 8092 --directory public",
+    "start": "python3 -m cron_rhythm_studio.cli serve --port 5174",
+    "serve:public": "python3 -m http.server 5174 --directory public",
     "electron": "electron .",
     "app": "electron .",
     "test": "pytest tests/",

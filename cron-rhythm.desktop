@@ -2,10 +2,10 @@
 Version=1.0
 Type=Application
 Name=Cron Rhythm Studio
-GenericName=AST Schedule Parser & Heatmap Studio
-Comment=Zero-Dependency AST Schedule Parser, 24×7 Rhythm Matrix, Multi-Dialect Transpiler & DST Anomaly Auditor
+GenericName=Cron AST Schedule Parser & 24x7 Rhythm Matrix
+Comment=Zero-Dependency AST Schedule Parser, 24x7 Rhythm Matrix, Multi-Dialect Transpiler & DST Anomaly Auditor
 Exec=/usr/local/bin/cron-rhythm desktop
-Icon=/media/neo/f2fdda77-178b-4603-ae80-c7aa4cd97908/zoth-micro-repos/cron-rhythm-studio/assets/icon.png
+Icon=cron-rhythm
 Terminal=false
 Categories=Development;System;Utility;
 StartupNotify=true
@@ -16,5 +16,5 @@ Name=Open Cron Rhythm CLI
 Exec=x-terminal-emulator -e "/usr/local/bin/cron-rhythm --help"
 
 [Desktop Action Web]
-Name=Open Web UI (Port 8080)
+Name=Open Web UI (Port 5174)
 Exec=/usr/local/bin/cron-rhythm web

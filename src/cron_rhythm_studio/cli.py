@@ -1307,6 +1307,10 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
         path = parsed_url.path
         query = urllib.parse.parse_qs(parsed_url.query)
 
+        if path in ("/health", "/api/health"):
+            self._send_json({"status": "ok", "service": "cron-rhythm-studio", "version": SERVER_VERSION})
+            return
+
         # 1. Static Files from public directory (HTML, CSS, JS, Images)
         public_root = pathlib.Path(__file__).resolve().parent.parent.parent / "public"
         safe_rel = _safe_rel(path)
@@ -1577,7 +1581,7 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
 def cmd_serve(args: argparse.Namespace) -> int:
     """Launch the Cron Rhythm Studio Web UI & REST Server (design influenced by Material 3 tokens)."""
     host = args.host or "127.0.0.1"
-    port = args.port or 8080
+    port = args.port or 5174
 
     print(styler.bold(styler.cyan("\n=== Launching Cron Rhythm Studio Web UI & REST Server ===")))
     print(f"  {styler.bold('Local URL:')}   {styler.bold(styler.green(f'http://{host}:{port}/'))}")
@@ -1694,7 +1698,7 @@ def build_parser() -> argparse.ArgumentParser:
     # 7. serve
     p_serve = subparsers.add_parser("serve", parents=[parent_parser], help="Launch the Material 3 Web UI & REST Server")
     p_serve.add_argument("--host", type=str, default="127.0.0.1", help="Host IP to bind (default: 127.0.0.1)")
-    p_serve.add_argument("-p", "--port", type=int, default=8080, help="Port to listen on (default: 8080)")
+    p_serve.add_argument("-p", "--port", type=int, default=5174, help="Port to listen on (default: 5174)")
     p_serve.set_defaults(func=cmd_serve)
 
     # 8. mcp

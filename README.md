@@ -1,262 +1,178 @@
-<div align="center">
-  <img src="assets/hero-banner.svg" alt="CronRhythm Studio — Sovereign Architecture Banner" width="100%" />
-</div>
+<p align="center">
+  <img src="assets/hero-banner.svg" alt="Cron Rhythm Studio — Cron AST Parser, 24x7 Rhythm Matrix, Transpiler & DST Auditor" width="100%" />
+</p>
 
-<br />
+# Cron Rhythm Studio
 
-# Cron Rhythm Studio ⏰✨
+**Zero-dependency Python 3.9+ cron expression AST parser, natural-language humanizer, 24x7 weekly workload rhythm matrix, multi-job thundering-herd optimizer, Daylight Saving Time (DST) anomaly auditor, cross-dialect transpiler, and MCP server.**
 
-> **High-Precision Cron AST Parser, 24×7 Weekly Rhythm Heatmap, Iterative Next-Run Countdown Engine, and Multi-Dialect Transpiler across Kubernetes, GitHub Actions, AWS EventBridge, and Systemd.**
-> **100% Zero Egress Client-Side Execution** — Runs natively in the browser with zero cloud dependencies.
-
-[![Live App](https://img.shields.io/badge/Live%20App-cronrhythm.nullai.tech-gold?style=for-the-badge&logo=googlechrome&logoColor=white)](https://cronrhythm.nullai.tech)
-[![Buy Us a Coffee](https://img.shields.io/badge/☕%20Buy%20Us%20a%20Coffee-Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X)
-[![Solana Tip](https://img.shields.io/badge/Solana%20Tip-GG2eQbVh...-14F195?style=for-the-badge&logo=solana&logoColor=black)](https://cronrhythm.nullai.tech)
-[![Zero Egress](https://img.shields.io/badge/Privacy-100%25%20In--Browser%20AST-10B981?style=for-the-badge)](https://cronrhythm.nullai.tech)
-
-[![CI](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/1nc0gn30/cron-rhythm-studio/actions/workflows/ci.yml)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+- **Zoth Studio v2 Dossier**: [https://zoth.nullai.tech/tools/cron-rhythm-studio](https://zoth.nullai.tech/tools/cron-rhythm-studio)
+- **Default Loopback Endpoint**: `http://127.0.0.1:5174`
+- **Runtime Dependencies**: Zero external Python runtime packages (100% Python `stdlib`)
+- **License**: MIT (100% free and open-source)
 
 ---
 
 ## Overview
 
-**Cron Rhythm Studio** is an all-in-one developer toolkit for understanding, visualizing, and transpiling periodic job schedules across production platforms. It parses standard 5-field UNIX crontabs, 6-field Quartz schedules with seconds, and 7-field enterprise expressions into a rich AST, computes exact upcoming timeline runs, translates syntax into natural human English, maps weekly workload distributions onto a 24×7 rhythm heatmap, and converts expressions between UNIX, Quartz, AWS EventBridge, Systemd Timers, GitHub Actions, and Kubernetes CronJobs.
+`cron-rhythm-studio` parses standard 5-field UNIX crontabs and extended macros (`@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly`) into a structured schedule AST, translates schedules into plain English, computes upcoming execution timestamps across IANA timezones, visualizes 168-hour (24x7) trigger density matrices, audits fleet schedules for concurrent thundering-herd collisions and DST spring-forward/fall-back anomalies, and transpiles schedules to Kubernetes `CronJob`, GitHub Actions, AWS EventBridge, `systemd` `OnCalendar`, and 6-field Quartz Scheduler expressions.
 
 ---
 
-## Key Features
+## Architecture
 
-- **High-Precision Cron AST Parser**:
-  - Supports 5-field UNIX (`* * * * *`), 6-field with seconds (`0 * * * * *`), and 7-field with year (`0 0 12 1 1 ? 2026`).
-  - Handles special symbols: ranges (`1-5`), steps (`*/15`), lists (`1,3,5`), day names (`MON-FRI`), month names (`JAN-DEC`), `L` (last day of month), `W` (nearest weekday), `?` (no specific value), and `#` (nth weekday).
-  - Handles standard macros: `@yearly`, `@annually`, `@monthly`, `@weekly`, `@daily`, `@midnight`, `@hourly`, `@reboot`.
-- **Iterative Timeline Engine**:
-  - Exact calendar calculation honoring month lengths (28/29/30/31 days), leap years, and weekday shifts.
-  - Computes the next $N$ runs with human-readable relative countdowns ("in 14 minutes", "tomorrow at 04:00 AM").
-- **Natural Language Humanizer**:
-  - Synthesizes crisp English sentences describing schedule execution without ambiguous phrases.
-- **Universal Multi-Dialect Transpiler**:
-  - Transpiles seamlessly across **UNIX Crontab**, **Quartz Scheduler**, **AWS EventBridge**, **Systemd Timers** (`OnCalendar`), **GitHub Actions Workflows**, and **Kubernetes CronJobs**.
-- **24×7 Rhythm Heatmap Matrix**:
-  - Maps 168 weekly hour slots ($7 \text{ days} \times 24 \text{ hours}$) to evaluate load distribution, peak hours, and collision risks.
-- **DST Transition Anomaly Auditor**:
-  - Audits cron schedules for critical clock discontinuities during Daylight Saving Time shifts (identifies skipped jobs during Spring Forward and duplicate executions during Fall Back with safe alternative recommendations).
-- **Multi-City World Run Radar (Flight Departure Board)**:
-  - Synchronizes upcoming cron execution times across major global tech hubs (UTC, New York, San Francisco, London, Berlin/Paris, Tokyo, Sydney) with real-time business hour indicators.
-- **Production Schedule Catalog**:
-  - 40+ curated presets for database backups, SSL renewal, log rotation, cache warming, and telemetry probes.
-- **FastMCP Protocol 2.0 Server**:
-  - First-class stdio JSON-RPC server enabling AI coding assistants (Claude Desktop, Cursor, Cline, Windsurf) to analyze and generate schedules.
-- **Cron Rhythm Studio Web App** (Design influenced by Material 3 tokens):
-  - Interactive web interface with live cron builder wheels, human translation pill, 24×7 rhythm heatmap, upcoming run timeline, and dark/light themes.
-
----
-
-## Installation
-
-```bash
-pip install cron-rhythm-studio
+```text
+src/cron_rhythm_studio/
+├── parser.py              # 5-field & macro cron lexer, validator, and AST builder
+├── scheduler.py           # Deterministic next-run iterator & 24x7 hourly rhythm matrix calculator
+├── humanizer.py           # Token-level natural-language English schedule translator
+├── transpiler.py          # Cross-dialect emitter (Kubernetes, GitHub Actions, AWS EventBridge, systemd, Quartz)
+├── fleet_optimizer.py     # Multi-job concurrency collision detector & jitter desynchronizer
+├── dst_auditor.py         # IANA timezone DST skipped/duplicate execution risk analyzer & world tz board
+├── catalog.py             # Production schedule preset catalog
+├── mcp_server.py          # JSON-RPC 2.0 stdio MCP server exposing 12 schedule engineering tools
+└── cli.py                 # Unified CLI entrypoint & HTTP REST/UI server (127.0.0.1:5174)
 ```
 
-Or install from source:
+---
+
+## Quickstart
 
 ```bash
-git clone https://github.com/NullAITech/cron-rhythm-studio.git
+git clone https://github.com/1nc0gn30/cron-rhythm-studio.git
 cd cron-rhythm-studio
-pip install -e .
+python3 -m pip install -e ".[dev]"
+
+# Launch the loopback web workstation on http://127.0.0.1:5174
+cron-rhythm-studio serve --host 127.0.0.1 --port 5174
 ```
 
----
-
-## Quickstart & CLI Reference
+Run directly from a source checkout without installing:
 
 ```bash
-# 1. Parse a cron expression into AST
-cron-rhythm parse "*/15 9-17 * * 1-5"
-
-# 2. Translate into natural human English
-cron-rhythm humanize "0 4 1,15 * *"
-# Output: At 04:00 AM, on day 1 and 15 of the month
-
-# 3. Calculate upcoming 10 execution timestamps
-cron-rhythm next "0 0 * * *" --count 10
-
-# 4. Transpile cron expression to AWS EventBridge or Systemd Timer
-cron-rhythm transpile "0 4 * * 1" --target aws
-cron-rhythm transpile "0 4 * * 1" --target systemd
-
-# 5. Generate 24x7 Rhythm Heatmap
-cron-rhythm rhythm "*/30 * * * *"
-
-# 6. Audit Daylight Saving Time (DST) clock discontinuities (skipped / duplicate runs)
-cron-rhythm dst-audit "0 2 * * *" --timezone America/New_York
-
-# 7. Project next runs across global tech hubs (flight departure board)
-cron-rhythm tz-board "0 14 * * 1-5" --count 3
-
-# 8. Browse built-in production schedule templates
-cron-rhythm presets --search backup
-
-# 9. Launch the Cron Rhythm Studio Web App (Material 3 influenced)
-cron-rhythm serve --port 8080
+PYTHONPATH=src python3 -m cron_rhythm_studio.cli serve --port 5174
 ```
 
 ---
 
-## FastMCP Configuration
+## CLI & MCP Usage
 
-Integrate Cron Rhythm Studio directly into your AI workflow:
+### CLI Subcommands
 
-### Claude Desktop (`claude_desktop_config.json`)
+Installed entrypoints: `cron-rhythm`, `cron-rhythm-studio`, and `cronrhythm`.
+
+```bash
+# View CLI help
+cron-rhythm --help
+
+# Parse a cron expression into structured AST JSON
+cron-rhythm parse "*/15 9-17 * * 1-5" --json
+
+# Translate a cron schedule into plain English
+cron-rhythm humanize "0 2 * * 0"
+
+# Project the next 10 execution timestamps
+cron-rhythm next "30 4 1,15 * *" -n 10 --json
+
+# Transpile into Kubernetes CronJob, systemd OnCalendar, EventBridge, GitHub Actions, or Quartz
+cron-rhythm transpile "0 */6 * * *" --target kubernetes
+cron-rhythm transpile "0 3 * * 1-5" --target systemd
+
+# Render the 24x7 weekly trigger density matrix
+cron-rhythm rhythm "*/10 8-20 * * 1-5" --json
+
+# Audit Daylight Saving Time clock-shift skip/duplicate anomalies
+cron-rhythm dst-audit "30 2 * * *" --tz America/New_York --json
+
+# Synchronize next trigger times across global engineering hubs
+cron-rhythm tz-board "0 14 * * 1-5" --json
+
+# Audit a multi-job fleet for concurrent thundering-herd spikes
+cron-rhythm fleet "0 * * * *" "0 */2 * * *" "0 0 * * *" --json
+
+# List curated cron presets
+cron-rhythm presets --json
+
+# Run the stdio MCP server
+cron-rhythm mcp
+```
+
+### ZothOS v3.4.0 CLI Integration
+
+On ZothOS v3.4.0 workstations, `cron-rhythm` is symlinked in `/usr/local/bin/cron-rhythm`:
+
+```bash
+cron-rhythm humanize "*/5 * * * *"
+cron-rhythm web              # Starts http://127.0.0.1:5174
+cron-rhythm desktop          # Launches the Electron workstation shell
+```
+
+### Model Context Protocol (MCP) Tools
 
 ```json
 {
   "mcpServers": {
-    "cron-rhythm": {
-      "command": "cron-rhythm",
+    "cron-rhythm-studio": {
+      "command": "cron-rhythm-studio",
       "args": ["mcp"]
     }
   }
 }
 ```
 
-### Cursor / Cline / Antigravity (`mcp.json`)
+| MCP Tool | Description |
+| :--- | :--- |
+| `cron_parse_expression` | Parse and validate a cron string into per-field AST sets |
+| `cron_next_runs` / `cron_calculate_timeline` | Compute upcoming ISO-8601 execution timestamps |
+| `cron_humanize` | Translate cron syntax into human-readable English |
+| `cron_transpile` | Convert cron syntax to Kubernetes, GitHub Actions, AWS EventBridge, `systemd`, or Quartz |
+| `cron_rhythm_matrix` | Compute the 7x24 weekly execution density matrix |
+| `cron_audit_fleet` | Detect multi-job concurrency collisions and suggest desynchronized schedules |
+| `cron_audit_dst_anomalies` | Audit spring-forward skipped runs and fall-back duplicate runs in IANA zones |
+| `cron_multizone_flight_board` | Project next execution across global timezones simultaneously |
+| `cron_list_presets` / `cron_preset_catalog` | Query curated schedule presets by category or keyword |
+| `cron_diagnostics` | Inspect host OS, Python runtime, and timezone database availability |
 
-```json
-{
-  "mcpServers": {
-    "cron-rhythm": {
-      "command": "python3",
-      "args": ["-m", "cron_rhythm_studio", "mcp"]
-    }
-  }
-}
+---
+
+## HTTP API Reference
+
+When running on `http://127.0.0.1:5174`:
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health`, `/api/health` | Service health status and version JSON |
+| `GET` | `/api/parse?expr=...` | Parse cron expression into AST JSON |
+| `GET` | `/api/humanize?expr=...` | Return English description and field breakdown |
+| `GET` | `/api/next?expr=...&count=10` | Project upcoming execution datetimes |
+| `GET` | `/api/transpile?expr=...&target=...` | Transpile cron schedule to target scheduler dialect |
+| `GET` | `/api/rhythm?expr=...` | Compute 24x7 hourly trigger heatmap matrix |
+| `GET` | `/api/presets` | List schedule templates |
+| `GET` / `POST` | `/api/fleet` | Fleet concurrency audit and jitter optimization |
+| `GET` / `POST` | `/api/dst-audit` | Daylight Saving Time anomaly analysis |
+| `GET` / `POST` | `/api/tz-board` | Multi-timezone synchronized execution board |
+
+---
+
+## Testing & Verification
+
+```bash
+# Run the pytest test suite
+python3 -m pytest -q
+
+# Run internal CLI self-test
+cron-rhythm-studio test
+
+# Scan repository with gitleaks
+gitleaks detect --source . --no-banner --redact
 ```
 
-### Registered MCP Tools:
-- `cron_parse_expression`: Parse expression into structured AST.
-- `cron_next_runs`: Calculate next $N$ executions with relative countdowns.
-- `cron_humanize`: Generate human-readable English description.
-- `cron_transpile`: Transpile between UNIX, Quartz, AWS, Systemd, GitHub, and K8s.
-- `cron_rhythm_matrix`: Generate 24×7 weekly distribution and collision analysis.
-- `cron_list_presets`: Query curated production presets.
-- `cron_diagnostics`: Multi-OS runtime diagnostics.
-
 ---
 
-## Python API Usage
+## Support
 
-```python
-from cron_rhythm_studio import parse_cron, humanize_cron, next_runs, transpile_cron
-
-# Parse expression
-ast = parse_cron("*/20 8-18 * * 1-5")
-print("Valid:", ast.is_valid)
-
-# Humanize
-print(humanize_cron("*/20 8-18 * * 1-5"))
-# "Every 20 minutes, between 08:00 AM and 06:59 PM, Monday through Friday"
-
-# Next executions
-for item in next_runs("*/20 8-18 * * 1-5", count=5):
-    print(f"{item.datetime_iso} ({item.relative_delta})")
-
-# Transpile to Systemd Timer
-res = transpile_cron("0 4 * * 1", target="systemd")
-print(res.output_syntax)
-# "*-*-* 04:00:00 Mon"
-```
-
----
-
-## Cross-Platform Compatibility
-
-Tested across:
-- **Linux**: Ubuntu 20.04+, Debian, Fedora, Arch Linux, Parrot OS
-- **macOS**: Sonoma, Ventura, Monterey (Apple Silicon & Intel)
-- **Windows**: Windows 10/11 (PowerShell, CMD, WSL)
-- **Mobile / Android**: Termux
-- **Python**: 3.9, 3.10, 3.11, 3.12, 3.13
-
----
-
-## 100% Free & Open Access (Zero Paywalls)
-
-Cron Rhythm Studio is engineered as an autonomous sovereign developer utility with zero paywalls, zero locked features, and zero license requirements. Everything is 100% unlocked by default.
-
-- **☕ Buy Us a Coffee (Stripe)**: [Support via Stripe](https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X)
-- **◎ Solana Community Tip Address**: `GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK`
-- **Capabilities**: Full unlocked AST JSON export, unrestricted multi-platform code copying (Kubernetes, AWS EventBridge, GitHub Actions, Systemd), and lifetime zero-egress updates.
-
----
-
-## Author & Sovereignty
-
-- **Engineered by**: [1nc0gn30 • NullAI](https://nullai.tech) ([@1nc0gn30](https://github.com/1nc0gn30))
-- **Ecosystem**: [NullAI Platform](https://nullai.tech)
-- **Repository**: [1nc0gn30/cron-rhythm-studio](https://github.com/1nc0gn30/cron-rhythm-studio)
-
----
+Cron Rhythm Studio is 100% free and open-source software. Optional community support is available via [Buy Us a Coffee (Stripe)](https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X).
 
 ## License
 
-MIT License. Engineered with zero external runtime dependencies by 1nc0gn30 • NullAI.
-
----
-
-## 🏛️ ZothOS v3.4, Zoth Studio v2 & Obsidian Second Brain Ecosystem
-
-```mermaid
-flowchart LR
-    subgraph ZothOS["🐧 ZothOS v3.4 CLI & Braille TUI"]
-        CLI["cron-rhythm-studio --help / --json"]
-        TUI["cron-rhythm-studio-tui<br/>Unicode U+2800 2x4 Braille"]
-    end
-
-    subgraph Workstation["⚡ Sovereign Workstation"]
-        WEB["http://127.0.0.1:5174<br/>REST API & /health"]
-    end
-
-    subgraph Studio["🌌 Zoth Studio v2 & ZothOS-Lite"]
-        GODMODE["http://127.0.0.1:3000/tools/cron-rhythm-studio<br/>God-Mode Workstation"]
-        LITE["http://127.0.0.1:8145<br/>ZothOS-Lite Web Desktop"]
-    end
-
-    subgraph SecondBrain["💎 Obsidian Second Brain & STDP"]
-        TRACKER["http://127.0.0.1:8151<br/>Zoth Obsidian Tracker"]
-        NEURO["http://127.0.0.1:8094<br/>Neuro-Memory STDP Cortex"]
-        NOTE["Studio/Tools/Studio cron-rhythm-studio.md"]
-    end
-
-    CLI --> WEB
-    TUI --> WEB
-    WEB <--> GODMODE
-    WEB <--> LITE
-    WEB --> TRACKER
-    TRACKER <--> NOTE
-    NOTE <--> NEURO
-```
-
-### Cross-Surface Integration Matrix
-
-| Surface | Endpoint / Binary | Capabilities |
-| :--- | :--- | :--- |
-| **Standalone Workstation** | `http://127.0.0.1:5174` | 100% Free & Open-Access Web Deck, live `/health` & REST telemetry |
-| **Zoth Studio v2 Route** | `http://127.0.0.1:3000/tools/cron-rhythm-studio` | Interactive God-Mode component inside Zoth Studio (`https://zoth.nullai.tech`) |
-| **ZothOS v3.4 CLI & TUI** | `cron-rhythm-studio` / `cron-rhythm-studio-tui` | Global binary in `/usr/local/bin/` with Unicode `U+2800` Braille TUI & `--json` output |
-| **ZothOS-Lite Web Desktop** | `http://127.0.0.1:8145` | Browser-native KDE-style window manager & terminal launcher |
-| **Zoth Obsidian Tracker** | `http://127.0.0.1:8151` | Interactive Obsidian Second Brain vault explorer (`~/Documents/Obsidian Vault/Studio/Tools/Studio cron-rhythm-studio.md`) |
-| **Neuro-Memory STDP Cortex** | `http://127.0.0.1:8094` | 3-Factor STDP synaptic memory daemon & 21-tool MCP server |
-
-```bash
-# Inspect CLI & Unicode U+2800 Braille TUI on ZothOS v3.4
-cron-rhythm-studio --help
-cron-rhythm-studio-tui --status
-cron-rhythm-studio-tui --json
-
-# Verify Second Brain Vault & 12-Step Verification Gallery on :8151
-zoth-obsidian-tracker --verify
-```
-
+MIT License — Copyright (c) 2026 [1nc0gn30](https://1nc0gn30.si) (`@1nc0gn30`) & [NullAI](https://nullai.tech). See [LICENSE](LICENSE) for full text.
