@@ -32,7 +32,7 @@
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "WebApplication",
+        "@type": ["WebApplication", "SoftwareApplication"],
         "name": "Cron Rhythm Studio",
         "url": "https://cronrhythm.nullai.tech",
         "applicationCategory": "DeveloperApplication",
@@ -707,11 +707,12 @@
         <p>In-Browser AST Parser, 24x7 Rhythm Heatmap & Multi-Dialect Transpiler</p>
       </div>
     </div>
-    <div class="header-actions">
-      <div class="badge-status" id="licenseBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); font-size: 11px; font-weight: 800; color: #10B981;">
+    <div class="header-actions" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div class="badge-status" id="openAccessBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); font-size: 11px; font-weight: 800; color: #10B981;">
         <span style="width: 7px; height: 7px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
-        <span id="licenseBadgeText">✦ 100% UNLOCKED</span>
+        <span id="openAccessBadgeText">✦ 100% OPEN ACCESS</span>
       </div>
+      <a href="https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 9999px; background: rgba(212,175,55,0.15); border: 1px solid rgba(212,175,55,0.45); font-size: 11px; font-weight: 700; color: #D4AF37; text-decoration: none;">☕ Buy Us a Coffee</a>
     </div>
   </header>
 
@@ -839,13 +840,10 @@
 
   <script>
     let currentTarget = 'kubernetes';
-    let isProLicensed = true;
 
-    // License Management (100% Free & Open Access)
     function checkLicense() {
-      isProLicensed = true;
-      const licenseBadgeText = document.getElementById('licenseBadgeText');
-      if (licenseBadgeText) licenseBadgeText.textContent = '✦ 100% UNLOCKED';
+      const badgeText = document.getElementById('openAccessBadgeText');
+      if (badgeText) badgeText.textContent = '✦ 100% OPEN ACCESS';
     }
 
     function showToast(msg) {
@@ -1161,10 +1159,6 @@
     }
 
     function handleCopyTranspile() {
-      if (!isProLicensed) {
-        openLicenseModal();
-        return;
-      }
       const text = document.getElementById('transpiledOutput').textContent;
       navigator.clipboard.writeText(text).then(() => {
         showToast('✦ Transpiled spec copied to clipboard!');
@@ -1174,10 +1168,6 @@
     }
 
     function exportAstJson() {
-      if (!isProLicensed) {
-        openLicenseModal();
-        return;
-      }
       const expr = document.getElementById('cronExpr').value.trim();
       const parts = expr.split(/\s+/);
       const payload = {
