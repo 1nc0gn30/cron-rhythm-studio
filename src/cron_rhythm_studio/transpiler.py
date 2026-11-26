@@ -259,6 +259,7 @@ def _transpile_to_systemd(ast: CronScheduleAST) -> TranspileResult:
     # Day of week component
     dow_part = ""
     dows = sorted(list(ast.fields.get(CronFieldType.DAY_OF_WEEK.value, set(range(0, 7)))))
+    dow_restricted = (len(dows) < 7 and not ast.dow_is_wildcard and not ast.dow_is_question) or (ast.special_dow is not None)
     if len(dows) < 7 and not ast.dow_is_wildcard and not ast.dow_is_question:
         if dows == [1, 2, 3, 4, 5]:
             dow_part = "Mon..Fri "
@@ -279,12 +280,22 @@ def _transpile_to_systemd(ast: CronScheduleAST) -> TranspileResult:
         mon_part = ",".join(f"{m:02d}" for m in months)
 
     dom_part = "*"
+    dom_restricted = False
     if ast.special_dom:
+        dom_restricted = True
         warnings.append(f"Systemd OnCalendar has limited support for '{ast.special_dom}'; mapped to '*'")
     else:
         doms = sorted(list(ast.fields.get(CronFieldType.DAY_OF_MONTH.value, set(range(1, 32)))))
         if len(doms) < 31 and not ast.dom_is_wildcard and not ast.dom_is_question:
+            dom_restricted = True
             dom_part = ",".join(f"{d:02d}" for d in doms)
+
+    if dom_restricted and dow_restricted:
+        warnings.append(
+            "Semantic difference: POSIX/Vixie cron combines Day-of-Month and Day-of-Week with OR, "
+            "whereas systemd OnCalendar combines them with AND. Use two separate OnCalendar= directives "
+            "if POSIX OR behavior is required."
+        )
 
     # Time component (HH:MM:SS)
     hrs = sorted(list(ast.fields.get(CronFieldType.HOUR.value, {0})))

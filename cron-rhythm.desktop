@@ -1,20 +1,21 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Cron Rhythm Studio
-GenericName=Cron AST Schedule Parser & 24x7 Rhythm Matrix
-Comment=Zero-Dependency AST Schedule Parser, 24x7 Rhythm Matrix, Multi-Dialect Transpiler & DST Anomaly Auditor
-Exec=/usr/local/bin/cron-rhythm desktop
-Icon=cron-rhythm
+Name=CronRhythm Studio
+GenericName=Cron AST Parser & 24x7 Rhythm Matrix
+Comment=Zero-dependency POSIX/Quartz cron AST parser, 24x7 rhythm heatmap, DST anomaly auditor, fleet optimizer, and multi-dialect transpiler across Kubernetes, GitHub Actions, AWS EventBridge, and Systemd
+Exec=/usr/local/bin/cron-rhythm-studio desktop
+TryExec=/usr/local/bin/cron-rhythm-studio
+Icon=cron-rhythm-studio
 Terminal=false
 Categories=Development;System;Utility;
 StartupNotify=true
-Actions=CLI;Web;
+Actions=TUI;WebApp;
 
-[Desktop Action CLI]
-Name=Open Cron Rhythm CLI
-Exec=x-terminal-emulator -e "/usr/local/bin/cron-rhythm --help"
+[Desktop Action TUI]
+Name=Launch CronRhythm Studio Braille TUI
+Exec=/usr/local/bin/zoth-konsole --title "CronRhythm Studio TUI" -- /usr/local/bin/cron-rhythm-studio-tui
 
-[Desktop Action Web]
-Name=Open Web UI (Port 5174)
-Exec=/usr/local/bin/cron-rhythm web
+[Desktop Action WebApp]
+Name=Open Local Web Workstation (:5174)
+Exec=xdg-open http://127.0.0.1:5174

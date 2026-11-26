@@ -1,6 +1,6 @@
 {
   "name": "cron-rhythm-studio",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Zero-Dependency AST Schedule Parser, 24×7 Rhythm Matrix, Multi-Dialect Transpiler & DST Anomaly Auditor — Desktop & Web Workstation",
   "main": "electron/main.cjs",
   "homepage": "https://cronrhythm.nullai.tech",

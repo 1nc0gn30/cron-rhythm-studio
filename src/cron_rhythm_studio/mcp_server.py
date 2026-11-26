@@ -40,7 +40,7 @@ from .transpiler import transpile_all, transpile_cron
 # MCP Protocol Version and Metadata
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "cron-rhythm-studio"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "2.6.0"
 
 # Target format mapping helper
 _TARGET_FORMAT_MAP: Dict[str, CronTargetFormat] = {

@@ -31,6 +31,46 @@ def _get_tz(tz_name: Optional[str] = None):
         return timezone.utc
 
 
+def _is_valid_local_wall_time(dt: datetime, tz) -> bool:
+    """Return True iff `dt` represents an existing wall-clock time in `tz`
+    (returns False for non-existent DST spring-forward gap timestamps)."""
+    if tz is None or tz == timezone.utc:
+        return True
+    rt = dt.astimezone(timezone.utc).astimezone(tz)
+    return (
+        rt.year == dt.year
+        and rt.month == dt.month
+        and rt.day == dt.day
+        and rt.hour == dt.hour
+        and rt.minute == dt.minute
+        and rt.second == dt.second
+    )
+
+
+def _resolve_tz_match(candidate: datetime, tz, pivot: datetime, forward: bool = True) -> Optional[datetime]:
+    """Validate candidate wall-clock match against IANA DST transitions.
+
+    - Skips non-existent spring-forward gap times (returns None).
+    - Deterministically resolves fall-back ambiguous times (fold=0 first, or fold=1
+      only when pivot is already in/past fold=0 and candidate is strictly after/before pivot).
+    """
+    if tz is None or tz == timezone.utc:
+        return candidate
+
+    pivot_ts = pivot.timestamp()
+    folds = (0, 1) if forward else (1, 0)
+    for fold in folds:
+        cand = candidate.replace(tzinfo=tz, fold=fold)
+        if not _is_valid_local_wall_time(cand, tz):
+            return None
+        cand_ts = cand.timestamp()
+        if forward and cand_ts > pivot_ts:
+            return cand
+        if not forward and cand_ts < pivot_ts:
+            return cand
+    return None
+
+
 def _get_nearest_weekday(year: int, month: int, target_day: int, max_days: int) -> int:
     """Calculate nearest weekday to target_day in the same month."""
     day = min(max(1, target_day), max_days)
@@ -268,8 +308,15 @@ def next_run(
                 curr = curr.replace(second=next_secs[0])
             continue
 
-        # All components match!
-        return curr
+        # All components match! Validate against DST transitions.
+        resolved = _resolve_tz_match(curr, tz, start_time, forward=True)
+        if resolved is not None:
+            return resolved
+        if ast.has_seconds:
+            curr = curr.replace(fold=0) + timedelta(seconds=1)
+        else:
+            curr = curr.replace(second=0, fold=0) + timedelta(minutes=1)
+        continue
 
     raise ValueError(f"No execution found for '{ast.expression}' within schedule horizon")
 
@@ -417,7 +464,14 @@ def prev_run(
                 curr = curr.replace(second=prev_secs[0])
             continue
 
-        return curr
+        resolved = _resolve_tz_match(curr, tz, start_time, forward=False)
+        if resolved is not None:
+            return resolved
+        if ast.has_seconds:
+            curr = curr.replace(fold=0) - timedelta(seconds=1)
+        else:
+            curr = curr.replace(second=0, fold=0) - timedelta(minutes=1)
+        continue
 
     raise ValueError(f"No previous execution found for '{ast.expression}' within history horizon")
 

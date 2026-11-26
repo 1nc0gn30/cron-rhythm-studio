@@ -28,6 +28,7 @@ from .mcp_server import (
     PROTOCOL_VERSION,
     SERVER_NAME,
     SERVER_VERSION,
+    TOOL_DEFINITIONS,
     handle_jsonrpc_request,
     process_request,
     run_stdio_server,
@@ -52,40 +53,230 @@ from .timezone_auditor import (
 )
 from .transpiler import transpile_all, transpile_cron
 
-__version__ = "0.1.0"
+__version__ = "2.6.0"
+
+MAX_BODY_BYTES = 1_048_576  # 1 MiB strict POST body limit
+DEFAULT_ALLOWED_CORS_PORTS = (5174, 3000)
+
+LOOPBACK_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data:; "
+    "connect-src 'self' http://127.0.0.1:5174 http://localhost:5174; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'self' http://127.0.0.1:* http://localhost:*"
+)
+
+STATIC_MIME_TYPES: Dict[str, str] = {
+    ".html": "text/html; charset=utf-8",
+    ".htm": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".mjs": "application/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8",
+    ".xml": "application/xml; charset=utf-8",
+    ".ico": "image/x-icon",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".woff2": "font/woff2",
+    ".ttf": "font/ttf",
+}
 
 
 # ============================================================================
-# Terminal Color & Styling Utilities
+# Loopback Security, Path Containment & CORS Helpers
 # ============================================================================
+
+def _has_traversal_attempt(raw: str) -> bool:
+    """Detect dot-segment traversal, backslashes, null bytes, or drive prefixes."""
+    raw_s = str(raw or "")
+    if "\x00" in raw_s or "\\" in raw_s:
+        return True
+    unq1 = urllib.parse.unquote(raw_s)
+    unq2 = urllib.parse.unquote(unq1)
+    for candidate in (raw_s, unq1, unq2):
+        if "\\" in candidate or "\x00" in candidate:
+            return True
+        norm = candidate.lstrip("/")
+        segs = [s for s in norm.split("/") if s]
+        if any(s == ".." for s in segs):
+            return True
+        if segs and ":" in segs[0]:
+            return True
+    return False
+
 
 def _safe_rel(raw: str) -> str:
-    """Request path -> safe relative path inside a static dir; '' (index) if it
-    tries to climb out with '..' or is absolute. Raw request paths are not normalised."""
-    from urllib.parse import unquote
-    rel = unquote(str(raw or "")).replace("\\", "/").lstrip("/")
+    """Request path -> safe relative path inside a static dir; '' if traversal/absolute."""
+    if _has_traversal_attempt(raw):
+        return ""
+    rel = urllib.parse.unquote(str(raw or "")).replace("\\", "/").lstrip("/")
     parts = [p for p in rel.split("/") if p not in ("", ".")]
     if any(p == ".." for p in parts) or ":" in (parts[0] if parts else ""):
         return ""
     return "/".join(parts)
 
 
-def _is_local_origin(origin) -> bool:
-    """True for no Origin (CLI/curl/same-origin GET) or a localhost origin."""
+def _is_allowed_host(host_header: Optional[str]) -> bool:
+    """Strict loopback Host header allowlist (127.0.0.1, localhost, [::1] + optional valid port)."""
+    if not host_header:
+        return True
+    h = host_header.strip().lower()
+    if not h or any(c.isspace() for c in h) or "/" in h or "@" in h:
+        return False
+    if h.startswith("["):
+        if "]" not in h:
+            return False
+        bracket_end = h.index("]")
+        addr = h[1:bracket_end]
+        rest = h[bracket_end + 1:]
+        if addr != "::1":
+            return False
+        if rest:
+            if not rest.startswith(":"):
+                return False
+            port_s = rest[1:]
+            if not port_s.isdigit() or not (1 <= int(port_s) <= 65535):
+                return False
+        return True
+    if ":" in h:
+        name, port_s = h.rsplit(":", 1)
+        if not port_s.isdigit() or not (1 <= int(port_s) <= 65535):
+            return False
+    else:
+        name = h
+    return name in ("127.0.0.1", "localhost")
+
+
+def _is_local_origin(origin: Optional[str], allowed_ports: Tuple[int, ...] = DEFAULT_ALLOWED_CORS_PORTS) -> bool:
+    """True for absent Origin (CLI/curl/same-origin) or exact-port loopback Origin (:5174, :3000)."""
     if not origin:
         return True
-    from urllib.parse import urlparse
     try:
-        u = urlparse(origin)
+        u = urllib.parse.urlparse(origin)
     except Exception:
         return False
-    return u.scheme in ("http", "https") and (u.hostname or "") in ("localhost", "127.0.0.1", "::1")
+    if u.scheme not in ("http", "https"):
+        return False
+    if u.username is not None or u.password is not None:
+        return False
+    if (u.hostname or "").lower() not in ("localhost", "127.0.0.1", "::1"):
+        return False
+    if u.path not in ("", "/") or u.query or u.fragment:
+        return False
+    try:
+        port = u.port
+    except ValueError:
+        return False
+    return port is not None and port in allowed_ports
 
 
-def _cors_origin(handler) -> str:
-    """Echo the Origin only when it is local; never '*'."""
+def _cors_origin(handler, allowed_ports: Tuple[int, ...] = DEFAULT_ALLOWED_CORS_PORTS) -> Optional[str]:
+    """Return the validated Origin header ONLY when present and explicitly allowed; else None."""
     origin = handler.headers.get("Origin", "")
-    return origin if origin and _is_local_origin(origin) else "http://127.0.0.1"
+    if origin and _is_local_origin(origin, allowed_ports=allowed_ports):
+        return origin
+    return None
+
+
+def _parse_int_param(
+    raw_value: Any,
+    default: int,
+    min_val: int,
+    max_val: int,
+    name: str,
+) -> int:
+    """Safely parse and range-check an integer query or JSON parameter."""
+    if raw_value is None or raw_value == "":
+        return default
+    if isinstance(raw_value, bool):
+        raise ValueError(f"Parameter '{name}' must be an integer")
+    try:
+        val = int(str(raw_value).strip())
+    except (ValueError, TypeError):
+        raise ValueError(f"Parameter '{name}' must be a valid integer")
+    if val < min_val or val > max_val:
+        raise ValueError(f"Parameter '{name}' must be between {min_val} and {max_val}")
+    return val
+
+
+def _sanitize_unit_slug(raw: str) -> str:
+    """Sanitize a systemd unit / job identifier slug."""
+    cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "-", str(raw or "cron-rhythm-job").strip()).strip("-_")
+    return (cleaned or "cron-rhythm-job")[:48].lower()
+
+
+def _build_export_bundle(expr: str, name: str = "cron-rhythm-job", command: str = "/usr/local/bin/zoth-agent-tick", tz: str = "UTC") -> Dict[str, Any]:
+    """Build a complete .timer + .service + crontab + multi-dialect export bundle."""
+    ast = parse_cron(expr)
+    if not ast.is_valid:
+        raise ValueError(ast.error_message or "Invalid cron expression")
+    slug = _sanitize_unit_slug(name)
+    safe_cmd = re.sub(r"[\r\n]+", " ", str(command or "/usr/local/bin/zoth-agent-tick")).strip()[:256]
+    tr_systemd = transpile_cron(ast, CronTargetFormat.SYSTEMD_TIMER)
+    tr_unix = transpile_cron(ast, CronTargetFormat.UNIX)
+    tr_k8s = transpile_cron(ast, CronTargetFormat.KUBERNETES)
+    tr_gha = transpile_cron(ast, CronTargetFormat.GITHUB_ACTIONS)
+    tr_aws = transpile_cron(ast, CronTargetFormat.AWS_EVENTBRIDGE)
+    tr_quartz = transpile_cron(ast, CronTargetFormat.QUARTZ)
+
+    timer_unit = (
+        f"[Unit]\n"
+        f"Description=CronRhythm Studio Timer ({slug})\n"
+        f"Wants=network-online.target\n\n"
+        f"[Timer]\n"
+        f"{tr_systemd.output_syntax}\n"
+        f"Persistent=true\n"
+        f"Unit={slug}.service\n\n"
+        f"[Install]\n"
+        f"WantedBy=timers.target\n"
+    )
+    service_unit = (
+        f"[Unit]\n"
+        f"Description=CronRhythm Studio Service ({slug})\n"
+        f"After=network-online.target\n\n"
+        f"[Service]\n"
+        f"Type=oneshot\n"
+        f"Environment=TZ={re.sub(r'[^a-zA-Z0-9_/+\\-]', '', str(tz or 'UTC'))[:64]}\n"
+        f"ExecStart={safe_cmd}\n"
+    )
+    crontab_entry = (
+        f"# CronRhythm Studio v{__version__} — {humanize_cron(ast)}\n"
+        f"CRON_TZ={re.sub(r'[^a-zA-Z0-9_/+\\-]', '', str(tz or 'UTC'))[:64]}\n"
+        f"{tr_unix.output_syntax} {safe_cmd} >> /var/log/{slug}.log 2>&1\n"
+    )
+    return {
+        "service": "cron-rhythm-studio",
+        "version": __version__,
+        "name": slug,
+        "expression": expr,
+        "human_summary": humanize_cron(ast),
+        "timezone": tz,
+        "files": {
+            f"{slug}.timer": timer_unit,
+            f"{slug}.service": service_unit,
+            f"{slug}.crontab": crontab_entry,
+        },
+        "timer_unit": timer_unit,
+        "service_unit": service_unit,
+        "crontab_entry": crontab_entry,
+        "dialects": {
+            "unix": tr_unix.to_dict(),
+            "systemd": tr_systemd.to_dict(),
+            "kubernetes": tr_k8s.to_dict(),
+            "github_actions": tr_gha.to_dict(),
+            "aws_eventbridge": tr_aws.to_dict(),
+            "quartz": tr_quartz.to_dict(),
+        },
+        "warnings": tr_systemd.warnings,
+    }
 
 
 class TerminalStyler:
@@ -703,650 +894,142 @@ def cmd_test(args: argparse.Namespace) -> int:
 
 
 # ============================================================================
-# Material 3 Influenced Web UI & REST API Server
+# Hardened Loopback Web UI & REST API Server (v2.6.0)
 # ============================================================================
-
-MATERIAL_WEB_HTML = r"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cron Rhythm Studio - Interactive Schedule Studio & Transpiler</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --md-sys-color-primary: #D0BCFF;
-      --md-sys-color-on-primary: #381E72;
-      --md-sys-color-primary-container: #4F378B;
-      --md-sys-color-on-primary-container: #EADDFF;
-      --md-sys-color-surface: #141218;
-      --md-sys-color-on-surface: #E6E1E5;
-      --md-sys-color-surface-variant: #2B2930;
-      --md-sys-color-on-surface-variant: #CAC4D0;
-      --md-sys-color-outline: #79747E;
-      --md-sys-color-surface-container: #1D1B20;
-      --md-sys-color-surface-container-high: #2B2930;
-      --md-sys-color-tertiary: #EFB8C8;
-      --md-sys-color-success: #A6D39F;
-      --md-sys-color-warning: #FFD56B;
-      --md-sys-color-error: #F2B8B5;
-      --md-shape-corner-medium: 12px;
-      --md-shape-corner-large: 16px;
-      --md-shape-corner-full: 9999px;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: var(--md-sys-color-surface);
-      color: var(--md-sys-color-on-surface);
-      font-family: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-      line-height: 1.5;
-      padding-bottom: 60px;
-    }
-
-    header {
-      background: linear-gradient(180deg, #211F26 0%, #141218 100%);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      padding: 24px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(12px);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .brand-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, #B69DF8 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #141218;
-      font-weight: 700;
-      font-size: 20px;
-      box-shadow: 0 4px 16px rgba(208, 188, 255, 0.25);
-    }
-    .brand-title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      background: linear-gradient(90deg, #FFFFFF 0%, #D0BCFF 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .brand-sub {
-      font-size: 12px;
-      color: var(--md-sys-color-on-surface-variant);
-      margin-left: 4px;
-    }
-
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 32px 24px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 28px;
-    }
-
-    /* Hero Banner / Expression Card */
-    .expression-card {
-      background: var(--md-sys-color-surface-container);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--md-shape-corner-large);
-      padding: 28px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    }
-
-    .human-banner {
-      background: linear-gradient(90deg, rgba(208, 188, 255, 0.12) 0%, rgba(239, 184, 200, 0.08) 100%);
-      border-left: 4px solid var(--md-sys-color-primary);
-      padding: 16px 20px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-      font-size: 18px;
-      font-weight: 500;
-      color: #FFFFFF;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .slot-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .slot-box {
-      background: var(--md-sys-color-surface-container-high);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: var(--md-shape-corner-medium);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-    .slot-box:focus-within {
-      border-color: var(--md-sys-color-primary);
-      box-shadow: 0 0 0 2px rgba(208, 188, 255, 0.2);
-    }
-    .slot-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--md-sys-color-primary);
-      font-weight: 700;
-    }
-    .slot-input {
-      background: transparent;
-      border: none;
-      color: #FFFFFF;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 20px;
-      font-weight: 700;
-      outline: none;
-      width: 100%;
-    }
-    .slot-sub {
-      font-size: 11px;
-      color: var(--md-sys-color-on-surface-variant);
-    }
-
-    .chips-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .chip {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: var(--md-sys-color-on-surface);
-      padding: 6px 14px;
-      border-radius: var(--md-shape-corner-full);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .chip:hover {
-      background: rgba(208, 188, 255, 0.2);
-      border-color: var(--md-sys-color-primary);
-      color: #FFFFFF;
-    }
-
-    /* Grid Layout: 2 Columns */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 28px;
-    }
-    @media (max-width: 900px) {
-      .dashboard-grid { grid-template-columns: 1fr; }
-    }
-
-    .panel {
-      background: var(--md-sys-color-surface-container);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: var(--md-shape-corner-large);
-      padding: 24px;
-    }
-    .panel-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    /* Rhythm Heatmap Grid */
-    .heatmap-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-    }
-    .heatmap-table th, .heatmap-table td {
-      padding: 4px;
-      text-align: center;
-    }
-    .heatmap-table th {
-      color: var(--md-sys-color-on-surface-variant);
-      font-weight: 500;
-    }
-    .cell {
-      width: 18px;
-      height: 20px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.04);
-      transition: transform 0.1s ease;
-      cursor: pointer;
-    }
-    .cell:hover { transform: scale(1.3); z-index: 10; }
-    .cell-0 { background: rgba(255,255,255,0.03); }
-    .cell-1 { background: rgba(208, 188, 255, 0.25); }
-    .cell-2 { background: rgba(208, 188, 255, 0.5); }
-    .cell-3 { background: rgba(208, 188, 255, 0.75); }
-    .cell-4 { background: #D0BCFF; color: #141218; font-weight: 700; }
-
-    /* Timeline Runs List */
-    .run-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 13px;
-    }
-    .run-item:last-child { border-bottom: none; }
-    .run-time { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
-    .run-badge {
-      background: rgba(166, 211, 159, 0.15);
-      color: var(--md-sys-color-success);
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-    }
-
-    /* Transpiler Tabs */
-    .tabs {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      padding-bottom: 8px;
-      overflow-x: auto;
-    }
-    .tab {
-      background: transparent;
-      border: none;
-      color: var(--md-sys-color-on-surface-variant);
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .tab.active {
-      background: var(--md-sys-color-primary-container);
-      color: var(--md-sys-color-on-primary-container);
-    }
-    .code-block {
-      background: #0E0D12;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 16px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      color: #A6D39F;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    /* Presets Gallery */
-    .preset-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .preset-card {
-      background: var(--md-sys-color-surface-container-high);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 10px;
-      padding: 14px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .preset-card:hover {
-      border-color: var(--md-sys-color-primary);
-      transform: translateY(-2px);
-    }
-    .preset-title { font-size: 14px; font-weight: 700; color: #FFFFFF; }
-    .preset-expr { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--md-sys-color-warning); margin: 4px 0; }
-    .preset-desc { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
-  </style>
-</head>
-<body>
-
-<header>
-  <div class="brand">
-    <div class="brand-icon">⚡</div>
-    <div>
-      <span class="brand-title">Cron Rhythm Studio</span>
-      <span class="brand-sub">v0.1.0 • Material 3</span>
-    </div>
-  </div>
-  <div class="chips-row">
-    <span class="chip" onclick="loadExpression('0 0 * * *')">Daily Midnight</span>
-    <span class="chip" onclick="loadExpression('*/15 * * * *')">Every 15m</span>
-    <span class="chip" onclick="loadExpression('0 9 * * 1-5')">Weekdays 9 AM</span>
-    <span class="chip" onclick="loadExpression('0 0 1,15 * *')">1st & 15th</span>
-  </div>
-</header>
-
-<div class="container">
-  <!-- Interactive Builder Card -->
-  <div class="expression-card">
-    <div id="humanBanner" class="human-banner">
-      ✨ At 12:00 AM, every day
-    </div>
-
-    <div class="slot-grid">
-      <div class="slot-box">
-        <span class="slot-label">Minute</span>
-        <input id="slotMin" class="slot-input" value="0" oninput="onSlotChange()">
-        <span class="slot-sub">0-59, *, */5</span>
-      </div>
-      <div class="slot-box">
-        <span class="slot-label">Hour</span>
-        <input id="slotHr" class="slot-input" value="0" oninput="onSlotChange()">
-        <span class="slot-sub">0-23, *, */2</span>
-      </div>
-      <div class="slot-box">
-        <span class="slot-label">Day of Month</span>
-        <input id="slotDom" class="slot-input" value="*" oninput="onSlotChange()">
-        <span class="slot-sub">1-31, *, L, 1,15</span>
-      </div>
-      <div class="slot-box">
-        <span class="slot-label">Month</span>
-        <input id="slotMon" class="slot-input" value="*" oninput="onSlotChange()">
-        <span class="slot-sub">1-12, JAN-DEC</span>
-      </div>
-      <div class="slot-box">
-        <span class="slot-label">Day of Week</span>
-        <input id="slotDow" class="slot-input" value="*" oninput="onSlotChange()">
-        <span class="slot-sub">0-7, MON-FRI</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Dashboard 2-Columns -->
-  <div class="dashboard-grid">
-    <!-- Rhythm Heatmap Panel -->
-    <div class="panel">
-      <div class="panel-title">
-        <span>24x7 Weekly Rhythm Matrix</span>
-        <span id="weeklyRunsBadge" class="run-badge">7 runs / week</span>
-      </div>
-      <div id="heatmapContainer" style="overflow-x: auto;">
-        <!-- Dynamically rendered -->
-      </div>
-      <div id="collisionAlert" style="margin-top: 14px; font-size: 12px; color: var(--md-sys-color-warning);"></div>
-    </div>
-
-    <!-- Next Runs Timeline Panel -->
-    <div class="panel">
-      <div class="panel-title">
-        <span>Upcoming Executions (Next 8 Runs)</span>
-        <span style="font-size: 12px; color: var(--md-sys-color-outline);">UTC</span>
-      </div>
-      <div id="timelineContainer">
-        <!-- Dynamically rendered -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Universal Transpiler Panel -->
-  <div class="panel">
-    <div class="panel-title">Universal Engine Transpiler</div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTranspileTab('unix', this)">UNIX Crontab</button>
-      <button class="tab" onclick="switchTranspileTab('quartz', this)">Quartz Scheduler</button>
-      <button class="tab" onclick="switchTranspileTab('aws', this)">AWS EventBridge</button>
-      <button class="tab" onclick="switchTranspileTab('systemd', this)">Systemd OnCalendar</button>
-      <button class="tab" onclick="switchTranspileTab('github', this)">GitHub Actions</button>
-      <button class="tab" onclick="switchTranspileTab('kubernetes', this)">Kubernetes CronJob</button>
-    </div>
-    <div id="transpileOutput" class="code-block">Loading transpilation...</div>
-  </div>
-
-  <!-- Preset Catalog Panel -->
-  <div class="panel">
-    <div class="panel-title">
-      <span>Curated Production Presets</span>
-      <input id="presetSearch" placeholder="Search presets..." oninput="filterPresets(this.value)" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color:#fff; padding:6px 12px; border-radius:8px; font-size:13px;">
-    </div>
-    <div id="presetsGrid" class="preset-list">
-      <!-- Dynamically loaded -->
-    </div>
-  </div>
-</div>
-
-<script>
-  let currentExpression = "0 0 * * *";
-  let activeTranspileTab = "unix";
-  let allPresets = [];
-
-  function getExpressionFromSlots() {
-    const min = document.getElementById("slotMin").value.trim() || "*";
-    const hr = document.getElementById("slotHr").value.trim() || "*";
-    const dom = document.getElementById("slotDom").value.trim() || "*";
-    const mon = document.getElementById("slotMon").value.trim() || "*";
-    const dow = document.getElementById("slotDow").value.trim() || "*";
-    return `${min} ${hr} ${dom} ${mon} ${dow}`;
-  }
-
-  function loadExpression(expr) {
-    const parts = expr.split(/\s+/);
-    if (parts.length >= 5) {
-      document.getElementById("slotMin").value = parts[0];
-      document.getElementById("slotHr").value = parts[1];
-      document.getElementById("slotDom").value = parts[2];
-      document.getElementById("slotMon").value = parts[3];
-      document.getElementById("slotDow").value = parts[4];
-      onSlotChange();
-    }
-  }
-
-  async function onSlotChange() {
-    currentExpression = getExpressionFromSlots();
-    refreshAll();
-  }
-
-  async function refreshAll() {
-    try {
-      // 1. Humanize
-      const humRes = await fetch(`/api/humanize?expr=${encodeURIComponent(currentExpression)}`).then(r => r.json());
-      document.getElementById("humanBanner").innerText = humRes.human_sentence ? `✨ ${humRes.human_sentence}` : `⚠ ${humRes.error || "Invalid expression"}`;
-
-      // 2. Rhythm Matrix
-      const rhyRes = await fetch(`/api/rhythm?expr=${encodeURIComponent(currentExpression)}`).then(r => r.json());
-      if (rhyRes.matrix) {
-        renderHeatmap(rhyRes.matrix);
-        document.getElementById("weeklyRunsBadge").innerText = `${rhyRes.total_runs_per_week.toLocaleString()} runs / week`;
-        const alertBox = document.getElementById("collisionAlert");
-        if (rhyRes.collision_risks && rhyRes.collision_risks.length > 0) {
-          alertBox.innerText = `⚠ ${rhyRes.collision_risks[0]}`;
-        } else {
-          alertBox.innerText = "";
-        }
-      }
-
-      // 3. Timeline
-      const timeRes = await fetch(`/api/next?expr=${encodeURIComponent(currentExpression)}&count=8`).then(r => r.json());
-      renderTimeline(timeRes.upcoming_runs || []);
-
-      // 4. Transpile
-      refreshTranspile();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  function renderHeatmap(matrix) {
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    let html = '<table class="heatmap-table"><thead><tr><th></th>';
-    for (let h = 0; h < 24; h += 2) {
-      html += `<th colspan="2">${h.toString().padStart(2, '0')}</th>`;
-    }
-    html += '</tr></thead><tbody>';
-
-    matrix.forEach((row, dIdx) => {
-      html += `<tr><td style="color:#CAC4D0; font-weight:700;">${days[dIdx]}</td>`;
-      row.forEach(cell => {
-        let cls = "cell-0";
-        if (cell.execution_count > 0) {
-          if (cell.intensity <= 0.25) cls = "cell-1";
-          else if (cell.intensity <= 0.5) cls = "cell-2";
-          else if (cell.intensity <= 0.75) cls = "cell-3";
-          else cls = "cell-4";
-        }
-        html += `<td><div class="cell ${cls}" title="${days[dIdx]} ${cell.hour}:00 - ${cell.execution_count} runs"></div></td>`;
-      });
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
-    document.getElementById("heatmapContainer").innerHTML = html;
-  }
-
-  function renderTimeline(runs) {
-    const cont = document.getElementById("timelineContainer");
-    if (!runs || runs.length === 0) {
-      cont.innerHTML = '<div style="padding:20px; text-align:center; color:#79747E;">No upcoming executions found</div>';
-      return;
-    }
-    let html = '';
-    runs.forEach(r => {
-      html += `
-        <div class="run-item">
-          <div>
-            <span class="run-time">${r.datetime_iso}</span>
-            <span style="color:#CAC4D0; margin-left:8px;">(${r.day_name})</span>
-          </div>
-          <span class="run-badge">${r.relative_delta}</span>
-        </div>
-      `;
-    });
-    cont.innerHTML = html;
-  }
-
-  async function switchTranspileTab(tabName, el) {
-    activeTranspileTab = tabName;
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    if (el) el.classList.add("active");
-    refreshTranspile();
-  }
-
-  async function refreshTranspile() {
-    try {
-      const res = await fetch(`/api/transpile?expr=${encodeURIComponent(currentExpression)}&target=${activeTranspileTab}`).then(r => r.json());
-      let text = res.output_syntax || res.error || "No output";
-      if (res.warnings && res.warnings.length > 0) {
-        text += "\\n\\n# Caveats:\\n# " + res.warnings.join("\\n# ");
-      }
-      document.getElementById("transpileOutput").innerText = text;
-    } catch (e) {
-      document.getElementById("transpileOutput").innerText = "Error transpiling";
-    }
-  }
-
-  async function fetchPresets() {
-    try {
-      const res = await fetch('/api/presets').then(r => r.json());
-      allPresets = res.presets || [];
-      renderPresets(allPresets);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  function renderPresets(presets) {
-    const grid = document.getElementById("presetsGrid");
-    grid.innerHTML = presets.map(p => `
-      <div class="preset-card" onclick="loadExpression('${p.expression}')">
-        <div class="preset-title">${p.title}</div>
-        <div class="preset-expr">${p.expression}</div>
-        <div class="preset-desc">${p.description}</div>
-      </div>
-    `).join('');
-  }
-
-  function filterPresets(q) {
-    const qLower = q.toLowerCase();
-    const filtered = allPresets.filter(p => 
-      p.title.toLowerCase().includes(qLower) ||
-      p.expression.toLowerCase().includes(qLower) ||
-      p.category.toLowerCase().includes(qLower) ||
-      p.description.toLowerCase().includes(qLower)
-    );
-    renderPresets(filtered);
-  }
-
-  // Initial Load
-  window.addEventListener("DOMContentLoaded", () => {
-    refreshAll();
-    fetchPresets();
-  });
-</script>
-</body>
-</html>
-"""
 
 
 class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
-    """Custom HTTP request handler serving REST API and Material 3 Web UI."""
+    """Hardened loopback HTTP handler serving REST API and static workstation files."""
+
+    def _allowed_ports(self) -> Tuple[int, ...]:
+        srv_port = getattr(self.server, "server_port", 5174)
+        return tuple(sorted({5174, 3000, int(srv_port)}))
+
+    def _check_host(self) -> bool:
+        if not _is_allowed_host(self.headers.get("Host")):
+            self._send_json({"error": "Forbidden host header"}, status=403)
+            return False
+        return True
+
+    def _write_security_headers(self, allow_origin: Optional[str] = None) -> None:
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Content-Security-Policy", LOOPBACK_CSP)
+        self.send_header("Vary", "Origin")
+        if allow_origin:
+            self.send_header("Access-Control-Allow-Origin", allow_origin)
+
+    def _send_json(self, data: Any, status: int = 200, head_only: bool = False) -> None:
+        payload = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self._write_security_headers(allow_origin=_cors_origin(self, self._allowed_ports()))
+        self.end_headers()
+        if not head_only:
+            self.wfile.write(payload)
+
+    def _send_bytes(self, body: bytes, content_type: str, status: int = 200, head_only: bool = False) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self._write_security_headers(allow_origin=_cors_origin(self, self._allowed_ports()))
+        self.end_headers()
+        if not head_only:
+            self.wfile.write(body)
+
+    def _read_json_body(self) -> Tuple[Optional[Dict[str, Any]], Optional[Tuple[int, str]]]:
+        raw_len = self.headers.get("Content-Length")
+        if raw_len is None or raw_len.strip() == "":
+            return {}, None
+        if not raw_len.strip().isdigit():
+            return None, (400, "Invalid Content-Length header")
+        content_length = int(raw_len.strip())
+        if content_length > MAX_BODY_BYTES:
+            # Discard up to 4 MiB in small constant-memory chunks so clients (curl / http.client)
+            # receive a clean 413 JSON response without TCP RST / BrokenPipeError.
+            remaining = min(content_length, 4 * 1024 * 1024)
+            while remaining > 0:
+                chunk = self.rfile.read(min(65536, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+            self.close_connection = True
+            return None, (413, f"Payload exceeds {MAX_BODY_BYTES} byte limit")
+        if content_length == 0:
+            return {}, None
+        body = self.rfile.read(content_length)
+        try:
+            parsed = json.loads(body.decode("utf-8"))
+        except Exception:
+            return None, (400, "Malformed JSON request body")
+        if not isinstance(parsed, dict):
+            return None, (400, "JSON request body must be an object")
+        return parsed, None
+
+    def do_OPTIONS(self) -> None:
+        if not self._check_host():
+            return
+        origin = self.headers.get("Origin", "")
+        if origin and not _is_local_origin(origin, self._allowed_ports()):
+            self._send_json({"error": "Cross-origin preflight blocked"}, status=403)
+            return
+        self.send_response(204)
+        self._write_security_headers(allow_origin=origin if origin else None)
+        self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "600")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def do_HEAD(self) -> None:
+        self._handle_get_or_head(head_only=True)
 
     def do_GET(self) -> None:
+        self._handle_get_or_head(head_only=False)
+
+    def _handle_get_or_head(self, head_only: bool = False) -> None:
+        if not self._check_host():
+            return
+
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
         query = urllib.parse.parse_qs(parsed_url.query)
 
+        # 0. Reject path traversal attempts immediately with 403 JSON
+        if _has_traversal_attempt(path):
+            self._send_json({"error": "Path traversal blocked"}, status=403, head_only=head_only)
+            return
+
+        # 1. Health & Diagnostics
         if path in ("/health", "/api/health"):
-            self._send_json({"status": "ok", "service": "cron-rhythm-studio", "version": SERVER_VERSION})
+            self._send_json(
+                {
+                    "status": "ok",
+                    "service": "cron-rhythm-studio",
+                    "version": __version__,
+                    "time_utc": datetime.now(timezone.utc).isoformat(),
+                },
+                head_only=head_only,
+            )
             return
 
-        # 1. Static Files from public directory (HTML, CSS, JS, Images)
-        public_root = pathlib.Path(__file__).resolve().parent.parent.parent / "public"
-        safe_rel = _safe_rel(path)
-        if not safe_rel or safe_rel in ("index.html", "studio"):
-            safe_rel = "index.html"
-        candidate_file = (public_root / safe_rel).resolve()
-        try:
-            if candidate_file.is_file() and public_root in candidate_file.parents:
-                content_type = "text/html; charset=utf-8"
-                if safe_rel.endswith(".css"):
-                    content_type = "text/css; charset=utf-8"
-                elif safe_rel.endswith(".js"):
-                    content_type = "application/javascript; charset=utf-8"
-                elif safe_rel.endswith(".png"):
-                    content_type = "image/png"
-                elif safe_rel.endswith(".svg"):
-                    content_type = "image/svg+xml"
-                elif safe_rel.endswith(".json"):
-                    content_type = "application/json"
-                self.send_response(200)
-                self.send_header("Content-Type", content_type)
-                self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
-                self.end_headers()
-                self.wfile.write(candidate_file.read_bytes())
-                return
-        except Exception:
-            pass
-
-        if path in ("/", "/index.html", "/studio"):
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(MATERIAL_WEB_HTML.encode("utf-8"))
+        if path == "/api/diagnostics":
+            plat_info = get_platform_info()
+            self._send_json(
+                {
+                    "status": "ok",
+                    "service": "cron-rhythm-studio",
+                    "version": __version__,
+                    "platform": plat_info.as_dict(),
+                    "time_utc": datetime.now(timezone.utc).isoformat(),
+                },
+                head_only=head_only,
+            )
             return
 
-        # 2. REST API: /api/parse
+        # 2. REST API routes
         if path == "/api/parse":
             expr = query.get("expr", ["* * * * *"])[0]
             ast = parse_cron(expr)
@@ -1354,63 +1037,71 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
             if ast.is_valid:
                 resp_data["human_summary"] = humanize_cron(ast)
                 resp_data["field_explanations"] = explain_cron_parts(ast)
-            self._send_json(resp_data)
+            self._send_json(resp_data, head_only=head_only)
             return
 
-        # 3. REST API: /api/humanize
         if path == "/api/humanize":
             expr = query.get("expr", ["* * * * *"])[0]
             ast = parse_cron(expr)
             if not ast.is_valid:
-                self._send_json({"is_valid": False, "error": ast.error_message})
+                self._send_json({"is_valid": False, "error": ast.error_message}, status=400, head_only=head_only)
                 return
-            self._send_json({
-                "is_valid": True,
-                "expression": expr,
-                "human_sentence": humanize_cron(ast),
-                "field_breakdown": explain_cron_parts(ast),
-            })
+            self._send_json(
+                {
+                    "is_valid": True,
+                    "expression": expr,
+                    "human_sentence": humanize_cron(ast),
+                    "field_breakdown": explain_cron_parts(ast),
+                },
+                head_only=head_only,
+            )
             return
 
-        # 4. REST API: /api/next
         if path == "/api/next":
             expr = query.get("expr", ["* * * * *"])[0]
-            count = int(query.get("count", ["10"])[0])
+            try:
+                count = _parse_int_param(query.get("count", ["10"])[0], 10, 1, 100, "count")
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400, head_only=head_only)
+                return
             tz_name = query.get("tz", ["UTC"])[0]
             ast = parse_cron(expr)
             if not ast.is_valid:
-                self._send_json({"error": ast.error_message})
+                self._send_json({"error": ast.error_message}, status=400, head_only=head_only)
                 return
             runs = next_runs(ast, count=count, tz_name=tz_name)
-            self._send_json({
-                "expression": expr,
-                "timezone": tz_name,
-                "upcoming_runs": [r.to_dict() for r in runs],
-            })
+            self._send_json(
+                {
+                    "expression": expr,
+                    "timezone": tz_name,
+                    "upcoming_runs": [r.to_dict() for r in runs],
+                },
+                head_only=head_only,
+            )
             return
 
-        # 5. REST API: /api/transpile
         if path == "/api/transpile":
             expr = query.get("expr", ["* * * * *"])[0]
             target_str = query.get("target", ["unix"])[0]
             ast = parse_cron(expr)
             if not ast.is_valid:
-                self._send_json({"error": ast.error_message})
+                self._send_json({"error": ast.error_message}, status=400, head_only=head_only)
                 return
             target_fmt = _resolve_target_format_cli(target_str)
             res = transpile_cron(ast, target_fmt)
-            self._send_json(res.to_dict())
+            self._send_json(res.to_dict(), head_only=head_only)
             return
 
-        # 6. REST API: /api/rhythm
         if path == "/api/rhythm":
             expr = query.get("expr", ["* * * * *"])[0]
             ast = parse_cron(expr)
+            if not ast.is_valid:
+                self._send_json({"error": ast.error_message}, status=400, head_only=head_only)
+                return
             report = generate_rhythm_matrix(ast)
-            self._send_json(report.to_dict())
+            self._send_json(report.to_dict(), head_only=head_only)
             return
 
-        # 7. REST API: /api/presets
         if path == "/api/presets":
             cat = query.get("category", [None])[0]
             search_q = query.get("search", [None])[0]
@@ -1420,25 +1111,34 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
                     res = [p for p in res if p.category.lower() == cat.lower()]
             else:
                 res = list_presets(cat)
-            self._send_json({
-                "categories": get_categories(),
-                "presets": [p.to_dict() for p in res],
-            })
+            self._send_json(
+                {
+                    "categories": get_categories(),
+                    "presets": [p.to_dict() for p in res],
+                },
+                head_only=head_only,
+            )
             return
 
-        # 7b. REST API: /api/fleet
         if path == "/api/fleet":
             from .fleet_optimizer import audit_cron_fleet
+
             jobs_param = query.get("jobs", [None])[0]
-            horizon = int(query.get("horizon", ["24"])[0])
+            try:
+                horizon = _parse_int_param(query.get("horizon", ["24"])[0], 24, 1, 720, "horizon")
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400, head_only=head_only)
+                return
             jobs: Dict[str, str] = {}
             if jobs_param:
                 try:
                     parsed = json.loads(jobs_param)
-                    if isinstance(parsed, dict):
-                        jobs = {str(k): str(v) for k, v in parsed.items()}
-                except Exception:
-                    pass
+                    if not isinstance(parsed, dict):
+                        raise ValueError("jobs parameter must be a JSON object")
+                    jobs = {str(k): str(v) for k, v in parsed.items()}
+                except Exception as exc:
+                    self._send_json({"error": f"Invalid jobs JSON: {exc}"}, status=400, head_only=head_only)
+                    return
             if not jobs:
                 jobs = {
                     "db_backup": "0 0 * * *",
@@ -1447,80 +1147,136 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
                     "cache_eviction": "0 0 * * *",
                 }
             report = audit_cron_fleet(jobs, horizon_hours=horizon, auto_rebalance=True)
-            self._send_json(report.to_dict())
+            self._send_json(report.to_dict(), head_only=head_only)
             return
 
-        # 7c. REST API: /api/dst-audit
         if path == "/api/dst-audit":
-            expr = query.get("expr", query.get("expression", ["0 2 * * *"]))[0]
+            expr = query.get("expr", query.get("expression", ["30 2 * * *"]))[0]
             tz = query.get("tz", query.get("timezone", ["America/New_York"]))[0]
             year_val = query.get("year", [None])[0]
-            year = int(year_val) if year_val and year_val.isdigit() else None
+            try:
+                year = _parse_int_param(year_val, 0, 1970, 2099, "year") if year_val is not None else None
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400, head_only=head_only)
+                return
             rep = audit_dst_anomalies(expr, tz_name=tz, reference_year=year)
-            self._send_json(rep.to_dict())
+            self._send_json(rep.to_dict(), head_only=head_only)
             return
 
-        # 7d. REST API: /api/tz-board
         if path == "/api/tz-board":
             expr = query.get("expr", query.get("expression", ["0 14 * * 1-5"]))[0]
             home_tz = query.get("home_tz", ["America/New_York"])[0]
-            count = int(query.get("count", ["3"])[0])
+            try:
+                count = _parse_int_param(query.get("count", ["3"])[0], 3, 1, 20, "count")
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400, head_only=head_only)
+                return
             reps = project_world_flight_board(expr, home_tz=home_tz, run_count=count)
-            self._send_json({
-                "expression": expr,
-                "home_timezone": home_tz,
-                "runs": [r.to_dict() for r in reps],
-            })
+            self._send_json(
+                {
+                    "expression": expr,
+                    "home_timezone": home_tz,
+                    "runs": [r.to_dict() for r in reps],
+                },
+                head_only=head_only,
+            )
             return
 
-        # 8. REST API: /health, /api/health or /api/diagnostics
-        if path in ("/health", "/api/health", "/api/diagnostics"):
-            plat_info = get_platform_info()
-            self._send_json({
-                "status": "ok",
-                "service": "cron-rhythm-studio",
-                "version": __version__,
-                "platform": plat_info.as_dict(),
-                "time_utc": datetime.now(timezone.utc).isoformat(),
-            })
+        if path == "/api/mcp/config":
+            self._send_json(
+                {
+                    "server": SERVER_NAME,
+                    "version": __version__,
+                    "protocol_version": PROTOCOL_VERSION,
+                    "transport": "stdio",
+                    "mcpServers": {
+                        "cron-rhythm-studio": {
+                            "command": "cron-rhythm-studio",
+                            "args": ["mcp"],
+                        }
+                    },
+                    "tool_count": len(TOOL_DEFINITIONS),
+                    "tools": [t["name"] for t in TOOL_DEFINITIONS],
+                },
+                head_only=head_only,
+            )
             return
 
-        # 404 Not Found
-        self.send_response(404)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(b'{"error": "Endpoint not found"}')
+        if path == "/api/export-bundle":
+            expr = query.get("expr", query.get("expression", ["*/15 * * * *"]))[0]
+            name = query.get("name", ["cron-rhythm-job"])[0]
+            command = query.get("command", ["/usr/local/bin/zoth-agent-tick"])[0]
+            tz = query.get("tz", ["UTC"])[0]
+            try:
+                bundle = _build_export_bundle(expr, name=name, command=command, tz=tz)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400, head_only=head_only)
+                return
+            self._send_json(bundle, head_only=head_only)
+            return
+
+        if path.startswith("/api/"):
+            self._send_json({"error": "Endpoint not found"}, status=404, head_only=head_only)
+            return
+
+        # 3. Static Files from public/ with strict canonical containment
+        public_root = (pathlib.Path(__file__).resolve().parent.parent.parent / "public").resolve()
+        safe_rel = _safe_rel(path)
+        if not safe_rel or safe_rel in ("index.html", "studio"):
+            safe_rel = "index.html"
+
+        candidate_file = (public_root / safe_rel).resolve()
+        if not candidate_file.is_relative_to(public_root):
+            self._send_json({"error": "Path traversal blocked"}, status=403, head_only=head_only)
+            return
+
+        if candidate_file.is_file():
+            ext = candidate_file.suffix.lower()
+            content_type = STATIC_MIME_TYPES.get(ext, "application/octet-stream")
+            self._send_bytes(candidate_file.read_bytes(), content_type, status=200, head_only=head_only)
+            return
+
+        self._send_json({"error": "Not found"}, status=404, head_only=head_only)
 
     def do_POST(self) -> None:
-
-        if not _is_local_origin(self.headers.get("Origin")):
-
-            self.send_error(403, "Cross-origin request blocked")
-
+        if not self._check_host():
             return
+        origin = self.headers.get("Origin", "")
+        if origin and not _is_local_origin(origin, self._allowed_ports()):
+            self._send_json({"error": "Cross-origin request blocked"}, status=403)
+            return
+
         parsed_url = urllib.parse.urlparse(self.path)
         path = parsed_url.path
 
+        data, err = self._read_json_body()
+        if err is not None:
+            self._send_json({"error": err[1]}, status=err[0])
+            return
+        assert data is not None
+
         if path == "/api/fleet":
             from .fleet_optimizer import audit_cron_fleet
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
+
             try:
-                data = json.loads(body.decode("utf-8"))
-            except Exception:
-                data = {}
-            jobs = data.get("jobs", {})
-            horizon = int(data.get("horizon_hours", 24))
+                horizon = _parse_int_param(data.get("horizon_hours"), 24, 1, 720, "horizon_hours")
+                max_shift = _parse_int_param(data.get("max_shift_minutes"), 25, 1, 60, "max_shift_minutes")
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
             auto_rebal = bool(data.get("auto_rebalance", True))
-            max_shift = int(data.get("max_shift_minutes", 25))
-            if not jobs or not isinstance(jobs, dict):
+            jobs = data.get("jobs", {})
+            if jobs and not isinstance(jobs, dict):
+                self._send_json({"error": "Parameter 'jobs' must be an object"}, status=400)
+                return
+            if not jobs:
                 jobs = {
                     "db_backup": "0 0 * * *",
                     "nightly_analytics": "0 0 * * *",
                     "billing_reconciliation": "0 0 * * *",
                 }
             report = audit_cron_fleet(
-                jobs,
+                {str(k): str(v) for k, v in jobs.items()},
                 horizon_hours=horizon,
                 auto_rebalance=auto_rebal,
                 max_shift_minutes=max_shift,
@@ -1529,52 +1285,52 @@ class StudioAPIHandler(http.server.BaseHTTPRequestHandler):
             return
 
         if path == "/api/dst-audit":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
-            try:
-                data = json.loads(body.decode("utf-8"))
-            except Exception:
-                data = {}
-            expr = str(data.get("expression", data.get("expr", "0 2 * * *")))
+            expr = str(data.get("expression", data.get("expr", "30 2 * * *")))
             tz = str(data.get("timezone", data.get("tz", "America/New_York")))
-            year = data.get("year")
-            rep = audit_dst_anomalies(expr, tz_name=tz, reference_year=int(year) if year else None)
+            year_raw = data.get("year")
+            try:
+                year = _parse_int_param(year_raw, 0, 1970, 2099, "year") if year_raw is not None else None
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            rep = audit_dst_anomalies(expr, tz_name=tz, reference_year=year)
             self._send_json(rep.to_dict())
             return
 
         if path == "/api/tz-board":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length) if content_length > 0 else b"{}"
-            try:
-                data = json.loads(body.decode("utf-8"))
-            except Exception:
-                data = {}
             expr = str(data.get("expression", data.get("expr", "0 14 * * 1-5")))
             home_tz = str(data.get("home_timezone", data.get("home_tz", "America/New_York")))
-            count = int(data.get("count", 3))
+            try:
+                count = _parse_int_param(data.get("count"), 3, 1, 20, "count")
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
             reps = project_world_flight_board(expr, home_tz=home_tz, run_count=count)
-            self._send_json({
-                "expression": expr,
-                "home_timezone": home_tz,
-                "runs": [r.to_dict() for r in reps],
-            })
+            self._send_json(
+                {
+                    "expression": expr,
+                    "home_timezone": home_tz,
+                    "runs": [r.to_dict() for r in reps],
+                }
+            )
             return
 
-        self.send_response(404)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(b'{"error": "Endpoint not found"}')
+        if path == "/api/export-bundle":
+            expr = str(data.get("expression", data.get("expr", "*/15 * * * *")))
+            name = str(data.get("name", "cron-rhythm-job"))
+            command = str(data.get("command", "/usr/local/bin/zoth-agent-tick"))
+            tz = str(data.get("tz", data.get("timezone", "UTC")))
+            try:
+                bundle = _build_export_bundle(expr, name=name, command=command, tz=tz)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            self._send_json(bundle)
+            return
 
-    def _send_json(self, data: Any, status: int = 200) -> None:
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", _cors_origin(self))
-        self.end_headers()
-        payload = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
-        self.wfile.write(payload)
+        self._send_json({"error": "Endpoint not found"}, status=404)
 
     def log_message(self, format: str, *args: Any) -> None:
-        # Suppress noisy standard HTTP access logs in quiet mode
         pass
 
 

@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""CronRhythm Studio v2.6.0 — Unified ZothOS & Local CLI Wrapper.
+
+Resolves its runtime root dynamically (/opt/cron-rhythm-studio -> script-relative repo
+-> $CRON_RHYTHM_HOME -> ~/NullAITech/cron-rhythm-studio) with zero hardcoded user paths.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pathlib
+import shutil
+import subprocess
+import sys
+import urllib.request
+
+TOOL_ID = "cron-rhythm-studio"
+TOOL_REPO = "cron-rhythm-studio"
+TOOL_NAME = "CronRhythm Studio"
+TOOL_VERSION = "2.6.0"
+TOOL_CATEGORY = "Automation"
+TOOL_PORT = 5174
+STUDIO_URL = f"http://127.0.0.1:3000/tools/{TOOL_ID}"
+LOCAL_PORT_URL = f"http://127.0.0.1:{TOOL_PORT}"
+
+ENGINE_SUBCOMMANDS = {
+    "parse",
+    "next",
+    "humanize",
+    "transpile",
+    "rhythm",
+    "fleet",
+    "dst-audit",
+    "tz-board",
+    "presets",
+    "serve",
+    "web",
+    "mcp",
+    "diagnostics",
+    "doctor",
+    "platform",
+    "test",
+}
+
+
+def resolve_runtime_root() -> pathlib.Path:
+    """Resolve CronRhythm Studio runtime root dynamically without hardcoded user paths."""
+    env_home = os.environ.get("CRON_RHYTHM_HOME", "").strip()
+    candidates = []
+    if env_home:
+        candidates.append(pathlib.Path(env_home))
+    candidates.append(pathlib.Path("/opt/cron-rhythm-studio"))
+    script_parent = pathlib.Path(__file__).resolve().parent.parent
+    candidates.append(script_parent)
+    candidates.append(pathlib.Path.home() / "NullAITech" / "cron-rhythm-studio")
+
+    for cand in candidates:
+        if (cand / "src" / "cron_rhythm_studio" / "cli.py").is_file():
+            return cand
+    return pathlib.Path("/opt/cron-rhythm-studio")
+
+
+def probe_local_daemon() -> bool:
+    try:
+        req = urllib.request.Request(f"{LOCAL_PORT_URL}/health", method="GET")
+        with urllib.request.urlopen(req, timeout=0.6) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    root = resolve_runtime_root()
+    src_dir = root / "src"
+
+    if "--electron" in args or (args and args[0] in ("desktop", "electron")):
+        rem = [a for a in args if a not in ("--electron", "desktop", "electron")]
+        elec = shutil.which("electron") or "/usr/local/bin/electron"
+        main_cjs = root / "electron" / "main.cjs"
+        if not main_cjs.is_file() or not os.path.exists(elec):
+            print(f"Electron shell unavailable; start web server with: {TOOL_ID} serve --port {TOOL_PORT}", file=sys.stderr)
+            return 1
+        return subprocess.run([elec, str(main_cjs)] + rem, cwd=str(root)).returncode
+
+    if "--tui" in args or (args and args[0] == "tui"):
+        rem = [a for a in args if a not in ("--tui", "tui")]
+        tui_bin = shutil.which(f"{TOOL_ID}-tui") or str(pathlib.Path(__file__).resolve().parent / f"{TOOL_ID}-tui")
+        return subprocess.run([tui_bin] + rem).returncode
+
+    if args and args[0] in ENGINE_SUBCOMMANDS:
+        forwarded = ["serve", "--host", "127.0.0.1", "--port", str(TOOL_PORT)] + args[1:] if args[0] == "web" else args
+        env = os.environ.copy()
+        if src_dir.is_dir():
+            env["PYTHONPATH"] = str(src_dir) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+        return subprocess.run(
+            [sys.executable, "-m", "cron_rhythm_studio.cli"] + forwarded,
+            cwd=str(root) if root.is_dir() else None,
+            env=env,
+        ).returncode
+
+    parser = argparse.ArgumentParser(
+        prog=TOOL_ID,
+        description=(
+            f"{TOOL_NAME} v{TOOL_VERSION} — POSIX/Quartz Cron AST Parser, 24x7 Rhythm Matrix, "
+            "DST Anomaly Auditor, Fleet Optimizer, Multi-Dialect Transpiler & 12-Tool MCP Server."
+        ),
+        epilog=(
+            "Engine subcommands: parse, next, humanize, transpile, rhythm, fleet, dst-audit, "
+            "tz-board, presets, serve, desktop, tui, mcp, diagnostics, test"
+        ),
+    )
+    parser.add_argument("--version", "-v", action="version", version=f"{TOOL_ID} v{TOOL_VERSION}")
+    parser.add_argument("--status", action="store_true", help="Check installation and :5174 daemon status")
+    parser.add_argument("--json", action="store_true", help="Output portable JSON telemetry (zero user paths)")
+    parser.add_argument("--ui", action="store_true", help="Print local workstation URL")
+    parsed, unknown = parser.parse_known_args(args)
+
+    if unknown:
+        print(f"{TOOL_ID}: unknown command or flag: {' '.join(unknown)}", file=sys.stderr)
+        parser.print_usage(sys.stderr)
+        return 2
+
+    if parsed.ui:
+        print(LOCAL_PORT_URL)
+        return 0
+
+    daemon_live = probe_local_daemon()
+    runtime_mode = "opt" if str(root) == "/opt/cron-rhythm-studio" else "checkout"
+
+    info = {
+        "id": TOOL_ID,
+        "repo": TOOL_REPO,
+        "name": TOOL_NAME,
+        "version": TOOL_VERSION,
+        "category": TOOL_CATEGORY,
+        "installed": (src_dir / "cron_rhythm_studio" / "cli.py").is_file(),
+        "runtime_mode": runtime_mode,
+        "entrypoint": "cron_rhythm_studio.cli",
+        "studio_workbench_url": STUDIO_URL,
+        "local_endpoint": LOCAL_PORT_URL,
+        "daemon_running": daemon_live,
+        "subcommands": sorted(ENGINE_SUBCOMMANDS | {"desktop", "tui"}),
+        "license": "MIT (100% Free & Open Access)",
+        "support": {
+            "stripe_buy_coffee": "https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X",
+            "solana_wallet": "GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK",
+        },
+        "status": "READY" if (src_dir / "cron_rhythm_studio" / "cli.py").is_file() else "MISSING_RUNTIME",
+    }
+
+    if parsed.json:
+        print(json.dumps(info, indent=2))
+        return 0
+
+    print(f"CronRhythm Studio v{TOOL_VERSION} [{TOOL_CATEGORY}]")
+    print(f"  Runtime    : {runtime_mode} (cron_rhythm_studio.cli)")
+    print(f"  Daemon     : {'ONLINE' if daemon_live else 'IDLE'} ({LOCAL_PORT_URL})")
+    print(f"  Studio URL : {STUDIO_URL}")
+    print(f"  Commands   : parse | next | humanize | transpile | rhythm | fleet | dst-audit | tz-board | presets | serve | tui | mcp | test")
+    print("  Support    : https://buy.stripe.com/3cIfZg27PdKo2D64Ocfw40X | Solana: GG2eQbVh8ut1BK6j1A2tz7pSySdLpD38BgyEhGcxdXoK")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

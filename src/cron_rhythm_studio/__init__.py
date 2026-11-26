@@ -54,7 +54,7 @@ from .timezone_auditor import (
 )
 from .transpiler import transpile_all, transpile_cron
 
-__version__ = "0.1.0"
+__version__ = "2.6.0"
 
 __all__ = [
     # Models

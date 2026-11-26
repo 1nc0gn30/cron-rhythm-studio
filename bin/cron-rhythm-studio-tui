@@ -1,60 +1,203 @@
 #!/usr/bin/env python3
-"""⚡ Cron Rhythm Studio — Sovereign Unicode U+2800 Braille TUI & Benchmark Harness
-Engineered by 1nc0gn30 (@1nc0gn30) • NullAI Platform
-Paired Uncommon-Web Library: Canvas UI (canvasui-html-effects)
+"""CronRhythm Studio v2.6.0 — Real Unicode U+2800 Braille Cron Rhythm TUI.
+
+Imports cron_rhythm_studio directly to parse cron ASTs, render live 24x7 Unicode
+Braille execution heatmaps, project upcoming runs, emit systemd OnCalendar specs,
+and probe local 127.0.0.1:5174 health. Zero hardcoded user paths.
 """
-import argparse, json, math, os, sys, time
 
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import pathlib
+import sys
+import urllib.request
+from typing import Any, Dict, List
+
+VERSION = "2.6.0"
 BRAILLE_BASE = 0x2800
-METRICS = ["AST/Engine Latency (ms)", "Throughput (ops/s)", "Memory Footprint (MB)", "Zero-Trust Audit Status"]
-SUMMARY = "Sovereign Cron Rhythm Studio engine with deterministic local execution and real-time telemetry."
-UW_SLUG = "canvasui-html-effects"
-UW_INSTALL = "npx shadcn@latest add https://canvasui.dev/r/liquid-react.json https://canvasui.dev/r/shatter-react.json https://canvasui.dev/r/peel-react.json https://canvasui.dev/r/ripple-react.json https://canvasui.dev/r/cloth-react.json https://canvasui.dev/r/vhs-react.json"
+HEALTH_URL = "http://127.0.0.1:5174/health"
 
-def braille_sparkline(vals):
-    out = []
-    for i in range(0, len(vals) - 1, 2):
-        v1 = max(0, min(3, int(vals[i] * 3.99)))
-        v2 = max(0, min(3, int(vals[i+1] * 3.99)))
-        dots1 = (0x40, 0x04, 0x02, 0x01)[v1]
-        dots2 = (0x80, 0x20, 0x10, 0x08)[v2]
-        out.append(chr(BRAILLE_BASE | dots1 | dots2))
-    return "".join(out)
 
-def main():
-    ap = argparse.ArgumentParser(description="Cron Rhythm Studio Sovereign TUI & Benchmark")
-    ap.add_argument("--json", action="store_true", help="Output JSON telemetry and exit")
-    ap.add_argument("--benchmark", action="store_true", help="Run deterministic latency benchmark")
-    ap.add_argument("--frames", type=int, default=18, help="TUI frames to render")
-    args = ap.parse_args()
+def _attach_runtime() -> str:
+    env_home = os.environ.get("CRON_RHYTHM_HOME", "").strip()
+    candidates = []
+    if env_home:
+        candidates.append(pathlib.Path(env_home))
+    candidates.append(pathlib.Path("/opt/cron-rhythm-studio"))
+    candidates.append(pathlib.Path(__file__).resolve().parent.parent)
+    candidates.append(pathlib.Path.home() / "NullAITech" / "cron-rhythm-studio")
 
-    t0 = time.perf_counter()
-    samples = [0.5 + 0.45 * math.sin(i * 0.35) for i in range(48)]
-    elapsed_ms = round((time.perf_counter() - t0) * 1000.0 + 0.42, 3)
+    for cand in candidates:
+        src = cand / "src"
+        if (src / "cron_rhythm_studio" / "parser.py").is_file():
+            if str(src) not in sys.path:
+                sys.path.insert(0, str(src))
+            return "opt" if str(cand) == "/opt/cron-rhythm-studio" else "checkout"
+    return "installed"
 
-    if args.json:
-        print(json.dumps({
-            "tool": "cron-rhythm-studio",
-            "title": "Cron Rhythm Studio",
-            "architect": "1nc0gn30 (@1nc0gn30) • NullAI Platform",
-            "summary": SUMMARY,
-            "uncommon_web": {"slug": UW_SLUG, "install": UW_INSTALL},
-            "audio_lufs": -14.0,
-            "benchmark_ms": elapsed_ms,
-            "metrics": METRICS,
-            "braille_signature": braille_sparkline(samples),
-        }, indent=2))
+
+def _probe_health() -> Dict[str, Any]:
+    try:
+        with urllib.request.urlopen(HEALTH_URL, timeout=0.6) as resp:
+            if resp.status == 200:
+                return {"online": True, "payload": json.loads(resp.read().decode("utf-8"))}
+    except Exception:
+        pass
+    return {"online": False, "payload": None}
+
+
+def _braille_row(hour_counts: List[int], max_val: int) -> str:
+    """Encode 24 hourly execution counts into 12 Unicode U+2800 2x4 Braille cells."""
+    denom = max(1, max_val)
+    chars: List[str] = []
+    left_dots = (0x40, 0x04, 0x02, 0x01)
+    right_dots = (0x80, 0x20, 0x10, 0x08)
+
+    for i in range(0, 24, 2):
+        c1 = hour_counts[i] if i < len(hour_counts) else 0
+        c2 = hour_counts[i + 1] if (i + 1) < len(hour_counts) else 0
+        mask = 0
+        if c1 > 0:
+            lvl1 = max(1, min(4, int((c1 / denom) * 4 + 0.99)))
+            for k in range(lvl1):
+                mask |= left_dots[k]
+        if c2 > 0:
+            lvl2 = max(1, min(4, int((c2 / denom) * 4 + 0.99)))
+            for k in range(lvl2):
+                mask |= right_dots[k]
+        chars.append(chr(BRAILLE_BASE | mask))
+    return "".join(chars)
+
+
+def _compute_snapshot(expr: str, tz_name: str, count: int = 5) -> Dict[str, Any]:
+    runtime_mode = _attach_runtime()
+    from cron_rhythm_studio.humanizer import humanize_cron
+    from cron_rhythm_studio.models import CronTargetFormat
+    from cron_rhythm_studio.parser import parse_cron
+    from cron_rhythm_studio.rhythm_matrix import generate_rhythm_matrix
+    from cron_rhythm_studio.timeline_engine import next_runs
+    from cron_rhythm_studio.transpiler import transpile_cron
+
+    ast = parse_cron(expr)
+    health = _probe_health()
+    if not ast.is_valid:
+        return {
+            "tool": "cron-rhythm-studio-tui",
+            "version": VERSION,
+            "runtime_mode": runtime_mode,
+            "expression": expr,
+            "timezone": tz_name,
+            "is_valid": False,
+            "error": ast.error_message,
+            "daemon_online": health["online"],
+        }
+
+    human = humanize_cron(ast)
+    sys_tr = transpile_cron(ast, CronTargetFormat.SYSTEMD_TIMER)
+    matrix_rep = generate_rhythm_matrix(ast)
+    runs = [] if ast.is_reboot else [r.to_dict() for r in next_runs(ast, count=count, tz_name=tz_name)]
+
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    raw_rows: List[List[int]] = []
+    max_cell = 1
+    for row in matrix_rep.matrix:
+        counts = [int(cell.execution_count) for cell in row]
+        raw_rows.append(counts)
+        if counts:
+            max_cell = max(max_cell, max(counts))
+
+    braille_matrix = {
+        days[idx]: _braille_row(raw_rows[idx], max_cell)
+        for idx in range(min(7, len(raw_rows)))
+    }
+
+    return {
+        "tool": "cron-rhythm-studio-tui",
+        "version": VERSION,
+        "runtime_mode": runtime_mode,
+        "expression": expr,
+        "timezone": tz_name,
+        "is_valid": True,
+        "is_reboot": ast.is_reboot,
+        "human_summary": human,
+        "systemd_oncalendar": sys_tr.output_syntax,
+        "systemd_warnings": sys_tr.warnings,
+        "total_runs_per_week": matrix_rep.total_runs_per_week,
+        "peak_hour": matrix_rep.peak_hour,
+        "braille_matrix_24x7": braille_matrix,
+        "next_runs": runs,
+        "daemon_online": health["online"],
+        "health_endpoint": HEALTH_URL,
+    }
+
+
+def _render_tui(snap: Dict[str, Any]) -> None:
+    w = 76
+    bar = "─" * (w - 2)
+    status_str = "ONLINE (:5174)" if snap.get("daemon_online") else "IDLE (:5174)"
+    print(f"╭{bar}╮")
+    print(f"│ CronRhythm Studio v{VERSION} Braille TUI  |  Daemon: {status_str:<24} │")
+    print(f"├{bar}┤")
+    print(f"│ Expr   : {snap['expression']:<35} TZ: {snap['timezone']:<21} │")
+    if not snap.get("is_valid"):
+        print(f"│ Error  : {str(snap.get('error', 'Invalid'))[:63]:<63} │")
+        print(f"╰{bar}╯")
         return
 
-    print("\033[1;33m╭──────────────────────────────────────────────────────────────────────────╮\033[0m")
-    print(f"\033[1;33m│\033[0m ⚡ \033[1;37mCron Rhythm Studio              \033[0m │ \033[36m1nc0gn30 • NullAI Platform\033[0m         \033[1;33m│\033[0m")
-    print("\033[1;33m├──────────────────────────────────────────────────────────────────────────┤\033[0m")
-    print(f"\033[1;33m│\033[0m {SUMMARY[:72]:<72} \033[1;33m│\033[0m")
-    print(f"\033[1;33m│\033[0m Uncommon-Web: \033[32m{UW_SLUG:<24}\033[0m Audio: \033[35m-14.0 LUFS Mastered\033[0m   \033[1;33m│\033[0m")
-    for idx, m in enumerate(METRICS[:4]):
-        wave = braille_sparkline([0.5 + 0.45 * math.sin((i + idx * 3) * 0.4) for i in range(40)])
-        print(f"\033[1;33m│\033[0m  • {m[:24]:<24} \033[33m{wave}\033[0m  PASS   \033[1;33m│\033[0m")
-    print("\033[1;33m╰──────────────────────────────────────────────────────────────────────────╯\033[0m")
+    print(f"│ Human  : {snap['human_summary'][:63]:<63} │")
+    print(f"│ Systemd: {snap['systemd_oncalendar'][:63]:<63} │")
+    if snap.get("systemd_warnings"):
+        print(f"│ Warn   : {snap['systemd_warnings'][0][:63]:<63} │")
+    print(f"├{bar}┤")
+    print(f"│ 24x7 Braille Matrix (00h..23h) | {snap['total_runs_per_week']} runs/wk | Peak {snap['peak_hour']:02d}:00{' ' * 16}│"[:w])
+    for day, cells in snap["braille_matrix_24x7"].items():
+        print(f"│   {day}  {cells}   (2 cols = 4h){' ' * 37}│"[:w])
+    print(f"├{bar}┤")
+    print(f"│ Next Scheduled Runs ({snap['timezone']}):{' ' * (w - 27 - len(snap['timezone']))}│"[:w])
+    if not snap["next_runs"]:
+        print(f"│   (none — @reboot or empty schedule){' ' * 37}│")
+    else:
+        for idx, run in enumerate(snap["next_runs"][:5], start=1):
+            line = f"  #{idx}  {run['datetime_iso']}  ({run['relative_delta']})"
+            print(f"│ {line[:72]:<72} │")
+    print(f"╰{bar}╯")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=f"CronRhythm Studio v{VERSION} Unicode Braille TUI")
+    ap.add_argument("--expr", "-e", default="*/15 * * * *", help="Cron expression to inspect")
+    ap.add_argument("--tz", default="UTC", help="IANA timezone (default: UTC)")
+    ap.add_argument("--count", "-n", type=int, default=5, help="Upcoming runs to show (default: 5)")
+    ap.add_argument("--once", action="store_true", help="Render once and exit")
+    ap.add_argument("--status", action="store_true", help="Render live status snapshot and exit")
+    ap.add_argument("--json", action="store_true", help="Emit JSON snapshot (zero user paths) and exit")
+    ap.add_argument("--version", "-v", action="version", version=f"cron-rhythm-studio-tui v{VERSION}")
+    args, _ = ap.parse_known_args()
+
+    snap = _compute_snapshot(args.expr, args.tz, max(1, min(args.count, 20)))
+    if args.json:
+        print(json.dumps(snap, indent=2, ensure_ascii=False))
+        return 0 if snap.get("is_valid") else 1
+
+    _render_tui(snap)
+    if args.once or args.status or not sys.stdin.isatty():
+        return 0 if snap.get("is_valid") else 1
+
+    # Interactive REPL when attached to a TTY without --once
+    while True:
+        try:
+            nxt = input("\nEnter cron expression (or 'q' to quit): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if not nxt or nxt.lower() in ("q", "quit", "exit"):
+            break
+        _render_tui(_compute_snapshot(nxt, args.tz, max(1, min(args.count, 20))))
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

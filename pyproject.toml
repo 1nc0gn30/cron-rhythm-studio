@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cron-rhythm-studio"
-version = "1.0.0"
+version = "2.6.0"
 description = "Universal Cron Rhythm & Schedule Studio - Visual 24x7 Matrix, Transpiler, Natural Language Humanizer & MCP Server"
 readme = "README.md"
 requires-python = ">=3.9"
